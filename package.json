@@ -1,5 +1,5 @@
 {
-  "name": "avf",
+  "name": "@tieuannguyen/avf",
   "version": "0.1.0",
   "description": "AVF — Automation Validation Framework (evaluate & evolve automation engines against a constant benchmark)",
   "main": "index.mjs",

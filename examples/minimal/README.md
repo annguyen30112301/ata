@@ -36,7 +36,7 @@ node bin/avf.mjs simulate --verdict DEFER --env sandbox      # → WARN,  exit 0
 The script imports from the package barrel, the supported surface:
 
 ```js
-import { run, makeReport, evaluateRules, exitCodeFor, toMarkdown } from 'avf';
+import { run, makeReport, evaluateRules, exitCodeFor, toMarkdown } from '@tieuannguyen/avf';
 // or, from inside this repo:  from '../../index.mjs'
 ```
 
