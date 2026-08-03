@@ -28,7 +28,8 @@
     "docs/",
     "examples/",
     "README.md",
-    "RELEASE.md"
+    "RELEASE.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=18"
