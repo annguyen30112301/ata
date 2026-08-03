@@ -1,0 +1,11 @@
+[
+  {
+    "id": "seed-0001",
+    "timestamp": "2026-07-31T08:30:00.000Z",
+    "reviewer": "qa-lead@taggle",
+    "subject": { "hypothesis": "H5", "engine": "referential@v0.3", "case_id": "wit/9288 pr/8182 build/14426" },
+    "verdict": "DEFER",
+    "decision": "confirm",
+    "reason": "Correct. The PR pipeline (THKMC RPM / taggle-ext-apt-azure-test) builds and collects code coverage but publishes no Test Run, so there is no test artifact to trace. Not a bug in AVF — a real process gap: Taggle pipeline gap #001 (PR builds do not publish test results)."
+  }
+]

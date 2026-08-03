@@ -1,0 +1,11 @@
+{
+  "_note": "LOCKED fixture of the ADO states API response (_apis/wit/workitemtypes/{type}/states) — real shape (name + stateCategory + order). Lets the extractor be tested with no PAT. Values shaped after the Taggle process observed on work item 9283 (Committed, Ready for Testing).",
+  "count": 5,
+  "value": [
+    { "name": "New", "stateCategory": "Proposed", "order": 1 },
+    { "name": "Committed", "stateCategory": "InProgress", "order": 2 },
+    { "name": "Ready for Testing", "stateCategory": "InProgress", "order": 3 },
+    { "name": "Done", "stateCategory": "Completed", "order": 4 },
+    { "name": "Removed", "stateCategory": "Removed", "order": 5 }
+  ]
+}

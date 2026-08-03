@@ -1,0 +1,8 @@
+{
+  "_note": "Example gating policy — separate from any benchmark. Edit freely; it changes ACTIONS, never verdicts.",
+  "rules": [
+    { "name": "block any refuted/invalid check", "when": { "verdict_in": ["INVALID", "MISMATCH", "REFUTED", "NOT_READY"] }, "then": "block" },
+    { "name": "block DEFER on production", "when": { "verdict": "DEFER", "env": "production" }, "then": "block" },
+    { "name": "warn on DEFER elsewhere", "when": { "verdict": "DEFER" }, "then": "warn" }
+  ]
+}

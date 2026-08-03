@@ -1,0 +1,123 @@
+{
+  "id": "taggle-internal-update",
+  "dimension": "lifecycle",
+  "source": "azure-devops:taggle/Taggle Health App - Research",
+  "confirmed": true,
+  "provenance": {
+    "method": "ado-process-api",
+    "extracted_from": "wit/workitemtypes/Internal Update/states",
+    "policy_confirmed_by": "human (QA or BA testing mandatory)"
+  },
+  "policy": {
+    "mode": "permissive"
+  },
+  "lifecycle": {
+    "states": [
+      "new",
+      "approved",
+      "pending",
+      "in progress",
+      "ready for testing",
+      "committed",
+      "dev in progress",
+      "qa testing",
+      "reopen",
+      "ba testing",
+      "done",
+      "removed"
+    ],
+    "forbidden": [
+      [
+        "new",
+        "done"
+      ],
+      [
+        "approved",
+        "done"
+      ],
+      [
+        "pending",
+        "done"
+      ],
+      [
+        "in progress",
+        "done"
+      ],
+      [
+        "ready for testing",
+        "done"
+      ],
+      [
+        "committed",
+        "done"
+      ],
+      [
+        "dev in progress",
+        "done"
+      ],
+      [
+        "reopen",
+        "done"
+      ],
+      [
+        "removed",
+        "done"
+      ],
+      [
+        "done",
+        "new"
+      ],
+      [
+        "done",
+        "approved"
+      ],
+      [
+        "done",
+        "pending"
+      ],
+      [
+        "done",
+        "in progress"
+      ],
+      [
+        "done",
+        "ready for testing"
+      ],
+      [
+        "done",
+        "committed"
+      ],
+      [
+        "done",
+        "dev in progress"
+      ],
+      [
+        "done",
+        "qa testing"
+      ],
+      [
+        "done",
+        "ba testing"
+      ]
+    ]
+  },
+  "categories": {},
+  "observed": {
+    "states": [
+      "new",
+      "approved",
+      "pending",
+      "in progress",
+      "ready for testing",
+      "committed",
+      "dev in progress",
+      "qa testing",
+      "reopen",
+      "ba testing",
+      "done",
+      "removed"
+    ],
+    "transitions": []
+  },
+  "note": "DRAFT from ADO config. `states` are facts. ADO has no static allowed-transitions (any->any, gated by revision/rules), so this uses policy.mode=permissive: everything is VALID EXCEPT edges you list in lifecycle.forbidden. Declare the few forbidden edges (organization policy), set confirmed:true, rename to lifecycle.json. Cases are generated. `observed.transitions` are transitions seen in history: evidence, not permission."
+}

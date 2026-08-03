@@ -1,0 +1,29 @@
+{
+  "id": "taggle-code-review-request",
+  "dimension": "lifecycle",
+  "source": "azure-devops:taggle/Taggle Health App - Research",
+  "confirmed": true,
+  "provenance": {
+    "method": "ado-process-api",
+    "extracted_from": "wit/workitemtypes/Code Review Request/states"
+  },
+  "policy": {
+    "mode": "permissive"
+  },
+  "lifecycle": {
+    "states": [
+      "requested",
+      "closed"
+    ],
+    "forbidden": []
+  },
+  "categories": {},
+  "observed": {
+    "states": [
+      "requested",
+      "closed"
+    ],
+    "transitions": []
+  },
+  "note": "DRAFT from ADO config. `states` are facts. ADO has no static allowed-transitions (any->any, gated by revision/rules), so this uses policy.mode=permissive: everything is VALID EXCEPT edges you list in lifecycle.forbidden. Declare the few forbidden edges (organization policy), set confirmed:true, rename to lifecycle.json. Cases are generated. `observed.transitions` are transitions seen in history: evidence, not permission."
+}

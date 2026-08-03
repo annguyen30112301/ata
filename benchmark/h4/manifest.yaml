@@ -1,0 +1,12 @@
+# AVF benchmark / H4 — Transition Validity under a Declared Lifecycle.
+# This file is now benchmark LOGIC ONLY (lifecycle-agnostic). The lifecycle (a state machine) and
+# its human-confirmed transition cases live in a KNOWLEDGE PACKAGE (knowledge/<name>/lifecycle.json),
+# selected at load time (default below, override with AVF_KNOWLEDGE). H4 does NOT change to add a new
+# process — you add a Knowledge Package. That is Additive Knowledge applied to domain knowledge.
+schema_version: 1
+hypothesis:
+  id: H4
+  name: "Transition Validity under a Declared Lifecycle"
+  verdict: "SUPPORTED (constructive)"
+knowledge_domain: lifecycle
+default_knowledge: generic

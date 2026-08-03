@@ -1,0 +1,24 @@
+{
+  "_note": "KNOWLEDGE PACKAGE — human-confirmed DOMAIN knowledge consumed by benchmark H4. The human confirms only the lifecycle (states + allowed) and a few key refutations (forbidden edges that no API can tell you). The benchmark's cases are then GENERATED from this by knowledge/generator.mjs — regression from allowed edges, guard from a synthetic out-of-lifecycle state, refutations from the list below.",
+  "id": "generic",
+  "dimension": "lifecycle",
+  "source": "fixture (generic work-item lifecycle)",
+  "confirmed": true,
+  "provenance": { "method": "hand-authored fixture", "confirmed_by": "maintainer" },
+  "policy": { "mode": "restrictive" },
+  "lifecycle": {
+    "states": ["new", "active", "ready for testing", "closed"],
+    "allowed": [
+      ["new", "active"],
+      ["active", "ready for testing"],
+      ["ready for testing", "active"],
+      ["ready for testing", "closed"],
+      ["active", "closed"],
+      ["closed", "active"]
+    ]
+  },
+  "refutations": [
+    { "from": "new", "to": "closed", "breaks": "known-states-only engine allows new->closed (skips the lifecycle)" },
+    { "from": "closed", "to": "new", "breaks": "direction-blind engine allows closed->new" }
+  ]
+}

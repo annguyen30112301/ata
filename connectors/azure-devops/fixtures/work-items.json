@@ -1,0 +1,49 @@
+{
+  "_note": "LOCKED evidence fixture for the Azure DevOps connector, which does NOT exist yet. Discipline: benchmark before implementation — as an engine is written to a benchmark, a connector is written to an evidence fixture. These are raw ADO REST payloads as the API really returns them (nested under `fields`, dotted System.* keys, numeric priority) — NOT pre-cleaned, or normalize would never be tested. The connector will be written to satisfy THIS file; only then does it earn a green test.",
+  "raw_payloads": {
+    "wit_api": {
+      "id": 1234,
+      "rev": 3,
+      "fields": {
+        "System.Id": 1234,
+        "System.WorkItemType": "Bug",
+        "System.State": "Closed",
+        "System.Title": "Login button unresponsive on Safari",
+        "System.AssignedTo": { "displayName": "A. Nguyen", "uniqueName": "an@tagglehealth.com" },
+        "Microsoft.VSTS.Common.Priority": 1,
+        "System.CreatedDate": "2026-07-20T09:12:00Z",
+        "System.ChangedDate": "2026-07-28T14:03:00Z"
+      },
+      "url": "https://dev.azure.com/org/project/_apis/wit/workItems/1234"
+    },
+    "analytics_api": {
+      "WorkItemId": 1234,
+      "WorkItemType": "Bug",
+      "State": "closed",
+      "Title": "Login button unresponsive on Safari",
+      "Priority": "High"
+    }
+  },
+  "equivalence_sets": [
+    {
+      "name": "same work item via wit vs analytics API -> one canonical",
+      "equivalent_refs": ["wit_api", "analytics_api"],
+      "canonical": { "state": "closed", "priority": "high" }
+    }
+  ],
+  "cases": [
+    {
+      "name": "wit API payload -> canonical + input",
+      "raw_ref": "wit_api",
+      "expect_canonical": { "state": "closed", "priority": "high" },
+      "expect_input": { "record": { "state": "closed", "priority": "high" } }
+    },
+    {
+      "name": "analytics API payload -> same canonical + input",
+      "raw_ref": "analytics_api",
+      "expect_canonical": { "state": "closed", "priority": "high" },
+      "expect_input": { "record": { "state": "closed", "priority": "high" } }
+    }
+  ],
+  "connector_status": "fetch adapter + shape adapter built against this fixture and GREEN; live REST (step 3) pending PAT/OAuth"
+}

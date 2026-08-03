@@ -1,0 +1,22 @@
+schema_version: 1
+hypothesis:
+  id: H2
+  name: "Semantic Grounding under Representation Equivalence"
+  verdict: "SUPPORTED (constructive)"    # NOTE: no implementation passes yet -> H2 is the open (semantic) frontier
+cases:
+  - id: H2-reg-001            # benign relabel: same meaning, different words
+    role: regression
+    oracle: NO_FLAG
+    criticality: normal
+    input: { representation_claim: "navigate to the python guides", grounded_claim: "navigate to documentation" }
+  - id: H2-guard-001          # two independent grounded sources -> H2 must DEFER (not resolve authority)
+    role: guard
+    oracle: DEFER
+    criticality: critical
+    input: { representation_claim: "delete", grounded_claims: ["delete the draft", "delete the account"] }
+  - id: RH2b-001              # within-category conflict (dangerous miss for coarse category)
+    role: refutation
+    oracle: FLAG
+    criticality: critical
+    breaks: "coarse category hides within-category stakes (draft != account)"
+    input: { representation_claim: "delete the draft", grounded_claim: "delete the account" }

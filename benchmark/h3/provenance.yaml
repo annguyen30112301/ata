@@ -1,0 +1,24 @@
+# AVF benchmark / H3 (Authority Resolution) — provenance claims (engine-agnostic data).
+# Union of the frozen research benchmarks v1(A-*) + v2(B-*) + v3(C-*). IMMUTABLE.
+claims:
+  # --- regression set (A-*) : the behavior that must never break ---
+  - { id: A-101, subject: py.search.submit, object: "submit the site search", source: PRD-v1,   source_type: prd, owner: product,     confidence: 0.80, asserted_at: 2026-03-01, supersedes: null,  deployed: false }
+  - { id: A-102, subject: py.search.submit, object: "delete the user account", source: ADO-4412, source_type: ado, owner: engineering, confidence: 1.00, asserted_at: 2026-06-20, supersedes: A-101, deployed: false }
+  - { id: A-103, subject: py.search.submit, object: "delete the user account", source: API-spec, source_type: api, owner: engineering, confidence: 1.00, asserted_at: 2026-06-25, supersedes: null,  deployed: true }
+  - { id: A-201, subject: py.donate, object: "external marketing redirect", source: ADO-4413, source_type: ado, owner: engineering, confidence: 1.00, asserted_at: 2026-05-10, supersedes: null,  deployed: false }
+  - { id: A-202, subject: py.donate, object: "donation payment flow",       source: PRD-v3, source_type: prd, owner: product,     confidence: 0.95, asserted_at: 2026-07-01, supersedes: A-201, deployed: false }
+  - { id: A-301, subject: pw.version, object: "paid signup",                       source: ADO-4501, source_type: ado, owner: engineering, confidence: 1.00, asserted_at: 2026-07-15, supersedes: null, deployed: false }
+  - { id: A-302, subject: pw.version, object: "switch the language/runtime version", source: API-spec, source_type: api, owner: engineering, confidence: 1.00, asserted_at: 2026-07-10, supersedes: null, deployed: true }
+  - { id: A-401, subject: py.nav.docs, object: "navigate to documentation", source: API-spec, source_type: api, owner: engineering, confidence: 1.00, asserted_at: 2026-04-01, supersedes: null, deployed: true }
+  - { id: A-501, subject: x.ambiguous, object: "perform action X", source: ADO-9001, source_type: ado, owner: engineering, confidence: 1.00, asserted_at: 2026-07-20, supersedes: null, deployed: false }
+  - { id: A-502, subject: x.ambiguous, object: "perform action Y", source: ADO-9002, source_type: ado, owner: engineering, confidence: 1.00, asserted_at: 2026-07-20, supersedes: null, deployed: false }
+  # --- refutation set (B-*) : deployed-but-defect + authority reversal ---
+  - { id: B-101, subject: billing.charge, object: "charge the customer twice", source: API-spec,    source_type: api, owner: engineering, confidence: 1.0, asserted_at: 2026-07-01, supersedes: null,  deployed: true,  lifecycle: deployed_defect }
+  - { id: B-102, subject: billing.charge, object: "charge the customer once",  source: ADO-rollback, source_type: ado, owner: engineering, confidence: 1.0, asserted_at: 2026-07-05, supersedes: B-101, deployed: false, lifecycle: rollback }
+  - { id: B-201, subject: dash.ads, object: "show ads on the dashboard",            source: API-spec, source_type: api, owner: engineering, confidence: 1.0, asserted_at: 2026-06-20, supersedes: null,  deployed: true,  lifecycle: deployed_stable }
+  - { id: B-202, subject: dash.ads, object: "show no ads (legal/product decision)", source: PRD-legal, source_type: prd, owner: product,     confidence: 1.0, asserted_at: 2026-07-10, supersedes: B-201, deployed: false, lifecycle: policy_override }
+  # --- refutation + guard set (C-*) : cyclic (non-DAG) + insufficient provenance ---
+  - { id: C-101, subject: cfg.toggle, object: "enable the feature",  source: ADO-1, source_type: ado, owner: engineering, confidence: 1.0, asserted_at: 2026-07-20, supersedes: C-102, deployed: false, lifecycle: planned }
+  - { id: C-102, subject: cfg.toggle, object: "disable the feature", source: ADO-2, source_type: ado, owner: engineering, confidence: 1.0, asserted_at: 2026-07-20, supersedes: C-101, deployed: false, lifecycle: planned }
+  - { id: C-201, subject: pay.mode, object: "charge the card now", source: API-spec, source_type: api, owner: engineering, confidence: 1.0, supersedes: null, deployed: false }
+  - { id: C-202, subject: pay.mode, object: "charge later",        source: ADO-9,    source_type: ado, owner: engineering, confidence: 1.0, supersedes: null, deployed: false }

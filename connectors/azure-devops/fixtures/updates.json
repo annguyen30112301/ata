@@ -1,0 +1,39 @@
+{
+  "_note": "LOCKED bridge fixture — raw ADO work-item UPDATES payloads (_apis/wit/workItems/{id}/updates), the state-change history. The LAST System.State change is the observed transition. Real shape, un-cleaned (fields.System.State.{oldValue,newValue}). This is the evidence H4 will consume; the lifecycle it is judged against belongs to the H4 benchmark, not here.",
+  "payloads": {
+    "into_ready_for_testing": {
+      "count": 2,
+      "value": [
+        { "id": 1, "rev": 1, "fields": { "System.State": { "newValue": "New" } } },
+        { "id": 2, "rev": 2, "fields": { "System.State": { "oldValue": "New", "newValue": "Active" } } },
+        { "id": 3, "rev": 3, "fields": { "System.State": { "oldValue": "Active", "newValue": "Ready for Testing" } } }
+      ]
+    },
+    "valid_active_to_closed": {
+      "count": 3,
+      "value": [
+        { "id": 1, "rev": 1, "fields": { "System.State": { "oldValue": "Ready for Testing", "newValue": "Active" } } },
+        { "id": 2, "rev": 2, "fields": { "System.State": { "oldValue": "Active", "newValue": "Closed" } } }
+      ]
+    },
+    "illegal_new_to_closed": {
+      "count": 2,
+      "value": [
+        { "id": 1, "rev": 1, "fields": { "System.State": { "newValue": "New" } } },
+        { "id": 2, "rev": 2, "fields": { "System.State": { "oldValue": "New", "newValue": "Closed" } } }
+      ]
+    },
+    "outside_lifecycle": {
+      "count": 1,
+      "value": [
+        { "id": 1, "rev": 1, "fields": { "System.State": { "oldValue": "Active", "newValue": "In Review" } } }
+      ]
+    }
+  },
+  "expected": {
+    "into_ready_for_testing": { "transition": { "from": "active", "to": "ready for testing" }, "verdict": "VALID" },
+    "valid_active_to_closed": { "transition": { "from": "active", "to": "closed" }, "verdict": "VALID" },
+    "illegal_new_to_closed": { "transition": { "from": "new", "to": "closed" }, "verdict": "INVALID" },
+    "outside_lifecycle": { "transition": { "from": "active", "to": "in review" }, "verdict": "DEFER" }
+  }
+}

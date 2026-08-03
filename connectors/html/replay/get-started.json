@@ -1,0 +1,15 @@
+{
+  "_note": "A saved fetch() envelope + the input it must always materialize to. This is the audit anchor: replay raw -> input, no network, no HTML parsing of a live page. If materialize() drifts, this goes red and the connector is no longer trustworthy.",
+  "fetched": {
+    "raw": {
+      "before": "<a role=\"link\" class=\"cta\" data-name=\"Get started\">Get started</a>",
+      "after": "<a role=\"link\" class=\"cta\" data-name=\"Get started\">Get started</a>"
+    },
+    "source": "inline",
+    "fetched_at": "2026-07-31T03:00:00.000Z"
+  },
+  "expect_input": {
+    "a": { "role": "link", "tag": "a", "cls": "cta", "name": "Get started", "text": "Get started" },
+    "b": { "role": "link", "tag": "a", "cls": "cta", "name": "Get started", "text": "Get started" }
+  }
+}

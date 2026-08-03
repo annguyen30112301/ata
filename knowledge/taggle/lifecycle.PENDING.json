@@ -1,0 +1,21 @@
+{
+  "_status": "PENDING human confirmation. The loader ignores *.PENDING.json — rename to lifecycle.json ONLY after a human declares the policy and sets confirmed:true (Oracle Contract). Or run the extractor: node connectors/azure-devops/process.run.mjs taggle \"Taggle Health App - Research\" to auto-seed one draft per work-item type.",
+  "id": "taggle",
+  "dimension": "lifecycle",
+  "source": "azure-devops:taggle",
+  "confirmed": false,
+  "policy": { "mode": "permissive" },
+  "lifecycle": {
+    "states": ["<confirm the full Taggle work-item states, e.g. new, committed, ready for testing, done, removed>"],
+    "forbidden": [
+      "// list ONLY the transitions Taggle policy FORBIDS (everything else is VALID). Examples:",
+      ["committed", "done"],
+      ["done", "new"]
+    ]
+  },
+  "observed": {
+    "_note": "Observation is not permission. From work item 9283: committed -> ready for testing (happened; that alone does not make it policy).",
+    "transitions": [["committed", "ready for testing"]]
+  },
+  "note": "Permissive: everything VALID except `forbidden`; state outside `states` -> DEFER. Fill states + the few forbidden edges (org policy), remove the string comment line, set confirmed:true, rename to lifecycle.json, then AVF_KNOWLEDGE=taggle."
+}

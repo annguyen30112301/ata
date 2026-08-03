@@ -1,0 +1,20 @@
+{
+  "_note": "FIXTURE Knowledge Package demonstrating PERMISSIVE policy mode (ADO-like: any->any except a few forbidden edges). This is a demo shape for testing v0.2, NOT Taggle's real policy — that is for a human at Taggle to declare. states = closed-world; transitions = open-world minus `forbidden`.",
+  "id": "permissive-demo",
+  "dimension": "lifecycle",
+  "confirmed": true,
+  "provenance": { "method": "hand-authored fixture", "confirmed_by": "maintainer" },
+  "policy": { "mode": "permissive" },
+  "lifecycle": {
+    "states": ["new", "committed", "ready for testing", "done", "removed"],
+    "forbidden": [
+      ["committed", "done"],
+      ["done", "new"],
+      ["ready for testing", "new"]
+    ]
+  },
+  "observed": {
+    "states": ["new", "committed", "ready for testing", "done", "removed"],
+    "transitions": [["new", "committed"], ["committed", "ready for testing"], ["ready for testing", "done"]]
+  }
+}

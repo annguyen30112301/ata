@@ -1,0 +1,65 @@
+{
+  "name": "avf",
+  "version": "0.1.0",
+  "description": "AVF — Automation Validation Framework (evaluate & evolve automation engines against a constant benchmark)",
+  "main": "index.mjs",
+  "bin": {
+    "avf": "./bin/avf.mjs"
+  },
+  "exports": {
+    ".": "./index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "bin/",
+    "framework/",
+    "report/",
+    "rules/",
+    "oracle/contract.mjs",
+    "oracle/review.mjs",
+    "oracle/store.mjs",
+    "oracle/reviews.json",
+    "engines/",
+    "benchmark/",
+    "knowledge/",
+    "connectors/",
+    "dashboard/",
+    "docs/",
+    "examples/",
+    "README.md",
+    "RELEASE.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node kernel-tests/golden.mjs && node connectors/tests/run.mjs",
+    "test:kernel": "node kernel-tests/golden.mjs",
+    "test:connectors": "node connectors/tests/run.mjs",
+    "test:integration": "node connectors/azure-devops/live.test.mjs",
+    "test:jira": "node connectors/jira/jira.test.mjs",
+    "test:evolution": "node evolution-tests/h4.test.mjs",
+    "test:bridge": "node evolution-tests/bridge.test.mjs",
+    "test:extract": "node evolution-tests/process-extract.test.mjs",
+    "test:policy": "node evolution-tests/policy-modes.test.mjs",
+    "test:autoselect": "node evolution-tests/bridge-autoselect.test.mjs",
+    "test:h5": "node evolution-tests/h5.test.mjs",
+    "test:oracle": "node oracle-tests/oracle.test.mjs",
+    "test:report": "node report-tests/report.test.mjs",
+    "test:cli": "node cli-tests/run.mjs",
+    "test:examples": "node examples-tests/run.mjs",
+    "avf": "node bin/avf.mjs",
+    "dashboard": "node dashboard/build.mjs",
+    "test:refbridge": "node evolution-tests/referential-bridge.test.mjs",
+    "run-h3": "node framework/run.mjs h3 resolution@v0.2",
+    "run-h4": "node framework/run.mjs h4 transition@v0.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "js-yaml": "^5.2.2"
+  }
+}

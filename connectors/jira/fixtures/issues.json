@@ -1,0 +1,35 @@
+{
+  "_note": "LOCKED evidence fixture for the Jira connector (written BEFORE the connector, discipline: fixture-first). These are raw Jira Cloud REST v3 issue payloads as the API returns them — nested `fields`, `status.name`, `priority.name`, un-cleaned. The connector is written to satisfy THIS.",
+  "raw_payloads": {
+    "cloud_closed": {
+      "id": "10001",
+      "key": "THA-1234",
+      "fields": {
+        "summary": "Login button unresponsive on Safari",
+        "status": { "name": "Closed", "id": "6", "statusCategory": { "key": "done", "name": "Done" } },
+        "priority": { "name": "High", "id": "2" },
+        "issuetype": { "name": "Bug" },
+        "assignee": { "displayName": "A. Nguyen", "emailAddress": "an@tagglehealth.com" }
+      }
+    },
+    "cloud_testing": {
+      "id": "10029",
+      "key": "THA-9283",
+      "fields": {
+        "summary": "Research spike",
+        "status": { "name": "Ready for Testing", "id": "10007", "statusCategory": { "key": "indeterminate", "name": "In Progress" } },
+        "priority": { "name": "Medium", "id": "3" },
+        "issuetype": { "name": "Story" }
+      }
+    }
+  },
+  "cases": [
+    { "name": "jira closed/high -> canonical + input", "raw_ref": "cloud_closed",
+      "expect_canonical": { "state": "closed", "priority": "high" },
+      "expect_input": { "record": { "state": "closed", "priority": "high" } } },
+    { "name": "jira ready-for-testing/medium -> canonical + input", "raw_ref": "cloud_testing",
+      "expect_canonical": { "state": "ready for testing", "priority": "medium" },
+      "expect_input": { "record": { "state": "ready for testing", "priority": "medium" } } }
+  ],
+  "connector_status": "fixture locked; connector built against it; live pending JIRA_EMAIL + JIRA_TOKEN"
+}

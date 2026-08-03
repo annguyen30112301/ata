@@ -1,0 +1,23 @@
+# AVF benchmark / H3 — manifest (engine-agnostic). Cases tagged by ROLE.
+# The HYPOTHESIS verdict lives HERE (a property of the benchmark + human oracle),
+# NOT computed from any engine — separation of powers.
+
+schema_version: 1
+hypothesis:
+  id: H3
+  name: "Authority Resolution under Conflicting Claims"
+  question: "Given conflicting claims, which is authoritative — resolved from provenance?"
+  verdict: "SUPPORTED (constructive)"     # human/benchmark-owned; means: an implementation reaching it exists
+  note: "Oracles are frozen & human-confirmed (Step-3). The engine run yields only the IMPLEMENTATION verdict."
+
+# role: regression = must never break | refutation = designed to break weak engines | guard = must not over-reach
+cases:
+  - { id: H3-001,  role: regression, candidates: [A-101, A-102, A-103], oracle: A-103, criticality: normal }
+  - { id: H3-002,  role: regression, candidates: [A-201, A-202],        oracle: A-202, criticality: normal }
+  - { id: H3-003,  role: regression, candidates: [A-301, A-302],        oracle: A-302, criticality: normal }
+  - { id: H3-004,  role: regression, candidates: [A-401],               oracle: A-401, criticality: normal }
+  - { id: H3-005,  role: regression, candidates: [A-501, A-502],        oracle: DEFER, criticality: normal }
+  - { id: RH3a-001, role: refutation, candidates: [B-101, B-102],       oracle: B-102, criticality: critical, breaks: "deployed-dominant weighting" }
+  - { id: RH3b-001, role: refutation, candidates: [B-201, B-202],       oracle: B-202, criticality: critical, breaks: "hard-coded source ranking (Authority Independence)" }
+  - { id: RH3c-001, role: refutation, candidates: [C-101, C-102],       oracle: DEFER, criticality: normal,   breaks: "supersede-graph-is-a-DAG assumption" }
+  - { id: RH3c-002, role: guard,      candidates: [C-201, C-202],       oracle: DEFER, criticality: normal,   guards: "must DEFER on insufficient provenance (not over-reach)" }

@@ -1,0 +1,13 @@
+{
+  "_note": "Cross-source vocabulary comparison + Source Substitution #2. Two INDEPENDENT sources describe the same logical work item in their own vocabulary; both must reduce to ONE canonical through the SAME pipeline below their adapters. Step 2 of Sprint 2: prove they CAN share one JSON Vocabulary before writing the adapter.",
+  "vocabulary": {
+    "azure-devops": { "state": "fields.System.State", "priority": "fields.Microsoft.VSTS.Common.Priority" },
+    "jira":         { "state": "fields.status.name",  "priority": "fields.priority.name" }
+  },
+  "json_vocabulary": { "state": "state", "priority": "priority" },
+  "equivalent": {
+    "ado":  "azure-devops/fixtures/work-items.json#wit_api",
+    "jira": "jira/fixtures/issues.json#cloud_closed",
+    "canonical": { "state": "closed", "priority": "high" }
+  }
+}

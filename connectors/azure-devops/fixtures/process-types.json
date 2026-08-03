@@ -1,0 +1,9 @@
+{
+  "_note": "LOCKED fixture of the ADO work-item-types list (_apis/wit/workitemtypes) — lets the all-types extractor be tested with no PAT.",
+  "count": 3,
+  "value": [
+    { "name": "Bug", "referenceName": "Microsoft.VSTS.WorkItemTypes.Bug" },
+    { "name": "User Story", "referenceName": "Microsoft.VSTS.WorkItemTypes.UserStory" },
+    { "name": "Task", "referenceName": "Microsoft.VSTS.WorkItemTypes.Task" }
+  ]
+}

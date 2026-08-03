@@ -1,0 +1,64 @@
+# AVF benchmark / H5 — Referential Integrity across Evidence.
+# NEW reasoning primitive: reference resolution. Each evidence carries references to OTHER evidence
+# (test -> build -> commit ; pr -> commit ; pr -> work_item). The engine must FOLLOW those references
+# and decide whether they all converge on ONE object (a single artifact lineage). This is not
+# membership (H0/H2/H4), not partition (H1), not precedence (H3), not edge-membership on a declared
+# graph (H4): the engine assembles the reference graph FROM the evidence and checks it co-refers.
+# It passes the Reduction Test only in this TRANSITIVE form — a flat `a == b` would reduce to H0.
+schema_version: 1
+hypothesis:
+  id: H5
+  name: "Referential Integrity across Evidence"
+  verdict: "SUPPORTED (constructive)"
+
+# Question each case asks: does the test result actually validate `target_work_item`? That holds only
+# if test -> build -> commit resolves to the SAME commit the PR merged, and the PR targets that work item.
+cases:
+  - id: H5-reg-001            # references converge: the green test really did test this work item's change
+    role: regression
+    oracle: CONSISTENT
+    criticality: normal
+    evidence:
+      target_work_item: "W1"
+      pr:    { id: "PR1", ref_work_item: "W1", ref_commit: "C1" }
+      build: { id: "B1", ref_commit: "C1" }
+      test:  { id: "T1", ref_build: "B1", result: "PASS" }
+  - id: H5-reg-002           # REALITY-DERIVED: a PR-validation build tests the SOURCE commit, not the
+    role: regression         # final merge commit. That still validates the change -> CONSISTENT.
+    oracle: CONSISTENT       # (Refuted referential@v0.1, which only knew the merge commit; fixed in v0.2.)
+    criticality: normal
+    evidence:
+      target_work_item: "W1"
+      pr:    { id: "PR2", ref_work_item: "W1", ref_commit: "MERGE1", ref_source_commit: "SRC1" }
+      build: { id: "B2", ref_commit: "SRC1" }
+      test:  { id: "T2", ref_build: "B2", result: "PASS" }
+  - id: RH5a-001             # green test, but it built a DIFFERENT commit than the PR merged
+    role: refutation
+    oracle: MISMATCH
+    criticality: critical
+    breaks: "trusts the PASS and never resolves test -> build -> commit against the PR's commit"
+    evidence:
+      target_work_item: "W1"
+      pr:    { id: "PR1", ref_work_item: "W1", ref_commit: "C1" }
+      build: { id: "B1", ref_commit: "C2" }
+      test:  { id: "T1", ref_build: "B1", result: "PASS" }
+  - id: RH5b-001             # commit lineage matches, but the PR targets a DIFFERENT work item
+    role: refutation
+    oracle: MISMATCH
+    criticality: critical
+    breaks: "ignores that the PR references another work item"
+    evidence:
+      target_work_item: "W1"
+      pr:    { id: "PR1", ref_work_item: "W2", ref_commit: "C1" }
+      build: { id: "B1", ref_commit: "C1" }
+      test:  { id: "T1", ref_build: "B1", result: "PASS" }
+  - id: H5-guard-001         # the test references a build that is NOT in the evidence set -> dangling -> cannot resolve
+    role: guard
+    oracle: DEFER
+    criticality: critical
+    breaks: "over-reaches to CONSISTENT when a reference dangles"
+    evidence:
+      target_work_item: "W1"
+      pr:    { id: "PR1", ref_work_item: "W1", ref_commit: "C1" }
+      build: { id: "B1", ref_commit: "C1" }
+      test:  { id: "T1", ref_build: "B9", result: "PASS" }

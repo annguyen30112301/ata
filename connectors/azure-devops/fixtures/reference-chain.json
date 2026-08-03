@@ -1,0 +1,35 @@
+{
+  "_note": "LOCKED bridge fixture — raw ADO payloads (wit/git/build/test) for one work item's evidence chain. REAL ADO lesson (work items 9288/9634/9060): a PR-validation build runs on refs/pull/{prId}/merge — a merge-preview commit that equals NEITHER the PR's source nor merge commit. So the reliable build->PR link is the PR id in build.sourceBranch, not a commit SHA. These scenarios use that link.",
+  "scenarios": {
+    "consistent": {
+      "work_item": { "id": 9288, "relations": [ { "rel": "ArtifactLink", "url": "vstfs:///Git/PullRequestId/proj%2Frepo%2F12" } ] },
+      "pull_request": { "pullRequestId": 12, "workItemRefs": [ { "id": "9288" } ], "lastMergeCommit": { "commitId": "MERGE1" }, "lastMergeSourceCommit": { "commitId": "SRC1" } },
+      "build": { "id": 5, "sourceBranch": "refs/pull/12/merge", "sourceVersion": "PREVIEW1", "result": "succeeded" },
+      "test_run": { "id": 7, "build": { "id": "5" }, "outcome": "Passed" }
+    },
+    "mismatch_pr": {
+      "work_item": { "id": 9288, "relations": [ { "rel": "ArtifactLink", "url": "vstfs:///Git/PullRequestId/proj%2Frepo%2F12" } ] },
+      "pull_request": { "pullRequestId": 12, "workItemRefs": [ { "id": "9288" } ], "lastMergeCommit": { "commitId": "MERGE1" } },
+      "build": { "id": 5, "sourceBranch": "refs/pull/99/merge", "sourceVersion": "PREVIEW9", "result": "succeeded" },
+      "test_run": { "id": 7, "build": { "id": "5" }, "outcome": "Passed" }
+    },
+    "mismatch_workitem": {
+      "work_item": { "id": 9288, "relations": [ { "rel": "ArtifactLink", "url": "vstfs:///Git/PullRequestId/proj%2Frepo%2F12" } ] },
+      "pull_request": { "pullRequestId": 12, "workItemRefs": [ { "id": "9999" } ], "lastMergeCommit": { "commitId": "MERGE1" } },
+      "build": { "id": 5, "sourceBranch": "refs/pull/12/merge", "sourceVersion": "PREVIEW1", "result": "succeeded" },
+      "test_run": { "id": 7, "build": { "id": "5" }, "outcome": "Passed" }
+    },
+    "dangling_build": {
+      "work_item": { "id": 9288, "relations": [ { "rel": "ArtifactLink", "url": "vstfs:///Git/PullRequestId/proj%2Frepo%2F12" } ] },
+      "pull_request": { "pullRequestId": 12, "workItemRefs": [ { "id": "9288" } ], "lastMergeCommit": { "commitId": "MERGE1" } },
+      "build": { "id": 5, "sourceBranch": "refs/pull/12/merge", "sourceVersion": "PREVIEW1", "result": "succeeded" },
+      "test_run": { "id": 7, "build": { "id": "99" }, "outcome": "Passed" }
+    }
+  },
+  "expected": {
+    "consistent": "CONSISTENT",
+    "mismatch_pr": "MISMATCH",
+    "mismatch_workitem": "MISMATCH",
+    "dangling_build": "DEFER"
+  }
+}

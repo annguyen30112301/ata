@@ -1,0 +1,28 @@
+schema_version: 1
+hypothesis:
+  id: H1
+  name: "Identity Preservation under Safe Matching"
+  verdict: "SUPPORTED (constructive)"
+cases:
+  - id: H1-reg-001
+    role: regression
+    oracle: "MERGE:T"
+    criticality: normal
+    input:
+      known: { role: link, name: Save, text: Save, owner_key: "Row 1" }
+      candidates: [{ id: T, role: link, name: Save, text: Save, owner_key: "Row 1" }]
+  - id: H1-guard-001
+    role: guard
+    oracle: "MERGE:S"
+    criticality: normal
+    input:
+      known: { role: button, name: Submit, text: Submit, owner_key: "" }
+      candidates: [{ id: S, role: button, name: Submit, text: Submit, owner_key: "" }]
+  - id: RH1a-001
+    role: refutation
+    oracle: SPLIT
+    criticality: critical
+    breaks: "shallow relational (no owner)"
+    input:
+      known: { role: link, name: Delete, text: Delete, owner_key: "Report A" }
+      candidates: [{ id: B, role: link, name: Delete, text: Delete, owner_key: "Report B" }]

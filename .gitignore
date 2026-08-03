@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# npm pack output
+*.tgz
+
+# Generated artifacts (reproducible — never a precondition to tests or a clone)
+reports/
+dashboard/index.html
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db

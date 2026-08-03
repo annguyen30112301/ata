@@ -1,0 +1,28 @@
+schema_version: 1
+hypothesis:
+  id: H0
+  name: "Stable Observation under one Logical State"
+  verdict: "SUPPORTED (constructive)"
+cases:
+  - id: H0-reg-001           # identical perceive -> identity preserved
+    role: regression
+    oracle: IDENTITY_PRESERVED
+    criticality: normal
+    input:
+      a: { role: link, tag: a, cls: nav, name: "Home", text: "Home" }
+      b: { role: link, tag: a, cls: nav, name: "Home", text: "Home" }
+  - id: H0-guard-001         # invariant (role) changed -> genuinely different -> must NOT claim preserved
+    role: guard
+    oracle: UNSTABLE
+    criticality: normal
+    input:
+      a: { role: button, tag: button, cls: cta, name: "Go", text: "Go" }
+      b: { role: link, tag: a, cls: cta, name: "Go", text: "Go" }
+  - id: RH0a-001             # same logical state, locale context differs -> identity preserved despite surface
+    role: refutation
+    oracle: IDENTITY_PRESERVED
+    criticality: normal
+    breaks: "blunt compare treats surface (name/text) variance as instability"
+    input:
+      a: { role: link, tag: a, cls: cta, name: "Get started", text: "Get started" }
+      b: { role: link, tag: a, cls: cta, name: "Bắt đầu", text: "Bắt đầu" }

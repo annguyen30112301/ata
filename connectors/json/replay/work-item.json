@@ -1,0 +1,10 @@
+{
+  "_note": "A saved fetch() envelope (raw = the parsed JSON in Azure-DevOps-ish format) + BOTH the canonical it must normalize to AND the input it must materialize to. Storing canonical (not just input) localizes any future drift: if raw->canonical breaks it is normalize; if canonical->input breaks it is materialize. No guessing, no network.",
+  "fetched": {
+    "raw": { "System.State": "Closed", "System.Priority": 1 },
+    "source": "inline",
+    "fetched_at": "2026-07-31T03:00:00.000Z"
+  },
+  "expect_canonical": { "state": "closed", "priority": "high" },
+  "expect_input": { "record": { "state": "closed", "priority": "high" } }
+}
