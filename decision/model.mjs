@@ -51,10 +51,11 @@ export function resolveSignal(snapshot, path) {
   return segs.reduce((o, k) => (o == null ? undefined : o[k]), snapshot);
 }
 
-// recommend — the v0 rule set (contract §4). Each rule is a pure map from one snapshot signal to one
-// recommendation; v0 never merges, so each firing is its own row with evidence of length one. A signal that is
-// insufficient / unchanged / flat / zero produces nothing: silence is honest (contract §2).
-export function recommend(snapshot) {
+// collectRecommendations — DETECT signals and BUILD one recommendation per firing (contract §4). Pure and
+// UNSORTED; one row per firing because v0 never merges. This is the seam a v0+ evidence-merge step slots into:
+// it folds same-(subject,kind) rows BETWEEN collect and sort, so collect never learns about merging. A signal
+// that is insufficient / unchanged / flat / zero produces nothing: silence is honest (contract §2).
+function collectRecommendations(snapshot) {
   const out = [];
   const trend = snapshot?.trend;
   if (trend && !trend.status) {                                   // absent trend or "no history yet" → no trend signals
@@ -80,8 +81,15 @@ export function recommend(snapshot) {
   if (snapshot?.review && snapshot.review.total > 0 && snapshot.review.override_rate >= THRESHOLDS.override_rate)
     out.push(rec('override_rate', KIND.REVIEW, { scope: 'project' },
       [{ signal: 'review.override_rate', value: snapshot.review.override_rate }]));
+  return out;
+}
 
-  return out.sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+// sortRecommendations — the DTO's deterministic order: priority (HIGH first), then id. Pure, non-mutating.
+const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+// recommend — the v0 pipeline: collect → sort. (A v0+ merge step inserts between the two, contract §7.)
+export function recommend(snapshot) {
+  return sortRecommendations(collectRecommendations(snapshot));
 }
 
 // RecommendationSnapshot — the DTO (contract §3). Pure over the snapshot: identical snapshot yields an identical
