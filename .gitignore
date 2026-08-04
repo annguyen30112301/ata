@@ -11,6 +11,7 @@ run-log/runs.jsonl
 analytics/analytics.json
 analytics/analytics.html
 decision/decision.json
+decision/decision.html
 
 # OS / editor cruft
 .DS_Store

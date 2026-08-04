@@ -9,19 +9,24 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildSnapshot } from '../analytics/model.mjs';
 import { recommendationSnapshot } from './model.mjs';
+import { renderDecisionHtml } from './render.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Public entry the CLI calls; writes decision/decision.json and returns a small summary. The snapshot Decision
-// reads is the AnalyticsSnapshot from disk — Decision itself reads no evidence, so the chain stays
-// evidence → analytics → snapshot → decision, never read backward.
+// Public entry the CLI calls; writes decision/decision.{json,html} and returns a small summary. Both artifacts
+// come from ONE RecommendationSnapshot: the JSON is it serialized (for an external tool), the HTML is it
+// rendered (renderDecisionHtml is pure over it, reads nothing else) — so the page provably needs nothing but
+// the snapshot. The snapshot Decision reads is the AnalyticsSnapshot from disk; Decision itself reads no
+// evidence, so the chain stays evidence → analytics → snapshot → decision, never read backward.
 export async function buildDecision(root = ROOT) {
   const snapshot = await buildSnapshot(root);
   const recommendation = recommendationSnapshot(snapshot);
   const dir = resolve(root, 'decision');
   await mkdir(dir, { recursive: true }); // a foreign workspace may not have decision/ yet
   const jsonPath = resolve(dir, 'decision.json');
+  const htmlPath = resolve(dir, 'decision.html');
   await writeFile(jsonPath, JSON.stringify(recommendation, null, 2) + '\n');
-  return { jsonPath, recommendations: recommendation.recommendations.length };
+  await writeFile(htmlPath, renderDecisionHtml(recommendation));
+  return { jsonPath, htmlPath, recommendations: recommendation.recommendations.length };
 }
 
 // Runnable directly: node decision/build.mjs. An empty list is a RESULT, not a failure — silence is honest, so
@@ -29,5 +34,5 @@ export async function buildDecision(root = ROOT) {
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const r = await buildDecision();
   const n = r.recommendations;
-  console.log(`wrote ${r.jsonPath} — ${n} recommendation${n === 1 ? '' : 's'}${n === 0 ? ' (silent — no actionable signal)' : ''}`);
+  console.log(`wrote ${r.jsonPath} + decision.html — ${n} recommendation${n === 1 ? '' : 's'}${n === 0 ? ' (silent — no actionable signal)' : ''}`);
 }

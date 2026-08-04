@@ -113,7 +113,7 @@ async function main() {
     case 'decision': {
       const r = await buildDecision();
       const n = r.recommendations;
-      console.log(`wrote ${r.jsonPath} — ${n} recommendation${n === 1 ? '' : 's'}${n === 0 ? ' (silent — no actionable signal)' : ''}`);
+      console.log(`wrote ${r.jsonPath} + decision.html — ${n} recommendation${n === 1 ? '' : 's'}${n === 0 ? ' (silent — no actionable signal)' : ''}`);
       return 0;
     }
 
