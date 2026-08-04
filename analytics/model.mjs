@@ -66,17 +66,77 @@ export function ruleMetrics(reports, rules, context = {}) {
   return { evaluated: reports.length, context, action_distribution, would_block: action_distribution.block, by_rule };
 }
 
+// TrendMetrics — the only history-over-time family (docs/trend-metrics.contract.md). It reads the append-only
+// run log and returns the DIRECTION of implementation behavior, NEVER the raw history: run log stores events,
+// TrendMetrics derives transitions, the snapshot presents direction. Each metric takes the observation unit
+// its meaning needs — verdict/ccw trajectory per HYPOTHESIS (the evolution story), verdict flip per
+// (hypothesis, engine@version) (a fixed specimen changing = the ground moved). It is a Local Machine Trend:
+// it describes the current run log, not the project's evolution. Pure over its entries.
+const SUPPORTED = 'SUPPORTED';
+
+// CLOSED enums — the only values `direction` can take, so a renderer or API consumer never has to guess.
+export const VERDICT_DIRECTION = Object.freeze({ TOWARD: 'toward_supported', AWAY: 'away_from_supported', UNCHANGED: 'unchanged', INSUFFICIENT: 'insufficient' });
+export const CCW_DIRECTION = Object.freeze({ FALLING: 'falling', RISING: 'rising', FLAT: 'flat', INSUFFICIENT: 'insufficient' });
+
+// Group entries into ordered series (oldest first) by a key. Timestamp sort; a fixed-specimen series is
+// normally flat (kernel determinism), so any movement in it is a signal, not noise.
+function orderedSeries(entries, keyOf) {
+  const ordered = [...entries].sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
+  const m = new Map();
+  for (const e of ordered) { const k = keyOf(e); if (!m.has(k)) m.set(k, []); m.get(k).push(e); }
+  return m;
+}
+
+export function trendMetrics(entries) {
+  const usable = entries.filter(e => e && e.hypothesis && e.implementation_verdict);
+  if (!usable.length) return { status: 'no history yet' };
+  const V = VERDICT_DIRECTION, C = CCW_DIRECTION;
+
+  // Direction + confidence quality — per hypothesis. The metric fields are direction + endpoints ONLY; the
+  // run count is context (how many observations back the direction), so it lives under `metadata`, never as a
+  // peer of the metric — that keeps a "runs: 42" from ever being read as a headline (metric ≠ inventory).
+  const hypotheses = {};
+  for (const [hyp, series] of orderedSeries(usable, e => e.hypothesis)) {
+    const first = series[0], last = series[series.length - 1];
+    const thin = series.length < 2;
+    const toSup = last.implementation_verdict === SUPPORTED, fromSup = first.implementation_verdict === SUPPORTED;
+    const verdictDir = thin ? V.INSUFFICIENT : toSup === fromSup ? V.UNCHANGED : toSup ? V.TOWARD : V.AWAY;
+    const cf = first.critical_confident_wrong, cl = last.critical_confident_wrong;
+    const ccwDir = thin ? C.INSUFFICIENT : cl < cf ? C.FALLING : cl > cf ? C.RISING : C.FLAT;
+    hypotheses[hyp] = {
+      verdict: { from: first.implementation_verdict, to: last.implementation_verdict, direction: verdictDir },
+      ccw: { from: cf, to: cl, direction: ccwDir },
+      metadata: { observations: series.length },
+    };
+  }
+
+  // Stability — verdict flip per (hypothesis, engine@version): did a FIXED specimen change behavior? A series
+  // of one run cannot flip, so it is not reported. This is the metric's definition, not an alternate grouping.
+  const stability = {};
+  for (const [key, series] of orderedSeries(usable, e => `${e.hypothesis} · ${e.engine}`)) {
+    if (series.length < 2) continue;
+    let flips = 0;
+    for (let i = 1; i < series.length; i++) if (series[i].implementation_verdict !== series[i - 1].implementation_verdict) flips++;
+    stability[key] = { flips, metadata: { observations: series.length } };
+  }
+
+  return { hypotheses, stability };
+}
+
 // AnalyticsSnapshot — the DTO. Pure over (reports, reviews): identical evidence yields an identical
 // snapshot save for `generated_at`. It holds numbers only — no logic, and no knowledge of any renderer.
 // `rule` appears ONLY when a policy is supplied (it is derived, not part of the base Slice-1 shape).
-export function analyticsSnapshot(reports, reviews, { rules, context = {}, generated_at = new Date().toISOString() } = {}) {
+export function analyticsSnapshot(reports, reviews, { rules, context = {}, runLog, generated_at = new Date().toISOString() } = {}) {
+  // CANONICAL key order — generated_at, overview, benchmark, review, rule, trend. A new metric family
+  // APPENDS after the existing ones (never inserts between) so the serialized artifact's diffs stay stable.
   const snap = {
     generated_at,
     overview: overview(reports, reviews),
     benchmark: benchmarkMetrics(reports),
     review: reviewMetrics(reviews),
   };
-  if (rules) snap.rule = ruleMetrics(reports, rules, context);
+  if (rules) snap.rule = ruleMetrics(reports, rules, context);   // derived, conditional — appears only with a policy
+  if (runLog) snap.trend = trendMetrics(runLog);                 // history-over-time — appears only when the run log is consulted
   return snap;
 }
 
@@ -84,6 +144,7 @@ export function analyticsSnapshot(reports, reviews, { rules, context = {}, gener
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadRunLog } from '../run-log/store.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // A report Analytics understands: the current kernel-verdict shape. Older/foreign JSON in reports/ (an
@@ -105,11 +166,15 @@ export async function loadEvidence(root = ROOT) {
   return { reports, reviews };
 }
 
-// Default disk snapshot: read evidence + the default gating policy, evaluate RuleMetrics under a chosen
-// context (production = the strictest gate). Missing policy → no rule metrics (never fails for its lack).
-export async function buildSnapshot(root = ROOT, { context = { env: 'production' } } = {}) {
+// Default disk snapshot: read evidence + a gating policy, evaluate RuleMetrics under a chosen context
+// (production = the strictest gate). The policy is INJECTABLE: a caller may pass `rules` directly (an API
+// consumer, a test) and no file is read; only when `rules` is omitted do we fall back to the on-disk
+// default gate. Pass `rules: null` to opt out entirely. Missing default → no rule metrics (never fails).
+export async function buildSnapshot(root = ROOT, { rules, context = { env: 'production' } } = {}) {
   const { reports, reviews } = await loadEvidence(root);
-  let rules;
-  try { rules = JSON.parse(await readFile(resolve(root, 'rules', 'default.json'), 'utf8')).rules; } catch { /* no policy on disk */ }
-  return analyticsSnapshot(reports, reviews, { rules, context });
+  if (rules === undefined) {
+    try { rules = JSON.parse(await readFile(resolve(root, 'rules', 'default.json'), 'utf8')).rules; } catch { /* no policy on disk */ }
+  }
+  const runLog = await loadRunLog(root);   // machine history; empty on a fresh clone → trend reports "no history yet"
+  return analyticsSnapshot(reports, reviews, { rules, context, runLog });
 }
