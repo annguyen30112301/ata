@@ -1,10 +1,12 @@
 // Dashboard renderer — a PURE function of a DashboardSnapshot: the same snapshot (+ the same
 // generated_at) yields the same HTML, byte for byte. No I/O, no repo knowledge, and no clock of its
 // own — the timestamp is injected by the caller. Rendering concerns (badge, esc) live here, not in the model.
+// It reads ONLY snapshot.inventory today; snapshot.analytics is composed but not yet presented.
 const badge = s => `<span class="b ${/(SUPPORTED|VALID)/.test(s) ? 'ok' : /FRONTIER|DEFER|pending/.test(s) ? 'warn' : 'muted'}">${s}</span>`;
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-export function renderDashboardHtml(s, { generated_at = '' } = {}) {
+export function renderDashboardHtml(snapshot, { generated_at = '' } = {}) {
+  const s = snapshot.inventory;
   const engineCount = s.engines.reduce((n, e) => n + e.versions.length, 0);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AVF — Automation Validation Dashboard</title><style>

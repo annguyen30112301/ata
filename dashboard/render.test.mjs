@@ -7,12 +7,15 @@ let pass = 0, fail = 0;
 const ok = (n, c, d = '') => { (c ? pass++ : fail++); console.log(`  ${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  <-- ' + d}`); };
 
 const snapshot = {
-  hypotheses: [{ id: 'H4', dim: 'Lifecycle', status: 'SUPPORTED', live: 'ADO → verdict' }],
-  engines: [{ family: 'transition', versions: ['v0', 'v0.1'] }],
-  connectors: ['json', 'azure-devops'],
-  realityTests: [{ name: 'ADO — H4', status: 'VALID (live)' }],
-  knowledge: { packages: ['taggle-bug', 'taggle-task'], gated: 1, permissive: 1 },
-  reviews: [{ subject: { hypothesis: 'H5' }, decision: 'confirm', verdict: 'DEFER', reason: 'process gap', reviewer: 'qa' }],
+  inventory: {
+    hypotheses: [{ id: 'H4', dim: 'Lifecycle', status: 'SUPPORTED', live: 'ADO → verdict' }],
+    engines: [{ family: 'transition', versions: ['v0', 'v0.1'] }],
+    connectors: ['json', 'azure-devops'],
+    realityTests: [{ name: 'ADO — H4', status: 'VALID (live)' }],
+    knowledge: { packages: ['taggle-bug', 'taggle-task'], gated: 1, permissive: 1 },
+    reviews: [{ subject: { hypothesis: 'H5' }, decision: 'confirm', verdict: 'DEFER', reason: 'process gap', reviewer: 'qa' }],
+  },
+  analytics: { overview: { reports: 0, reviews: 1, hypotheses: 1, engines: 1 } },  // composed but not yet presented
 };
 
 console.log('DASHBOARD RENDER — pure function of a snapshot');
@@ -28,7 +31,8 @@ console.log('DASHBOARD RENDER — pure function of a snapshot');
   renderDashboardHtml(snapshot, { generated_at: 'X' });
   ok('pure: snapshot is not mutated', JSON.stringify(snapshot) === before);
 
-  ok('empty reviews → "no reviews yet", no crash', renderDashboardHtml({ ...snapshot, reviews: [] }, {}).includes('no reviews yet'));
+  ok('empty reviews → "no reviews yet", no crash', renderDashboardHtml({ ...snapshot, inventory: { ...snapshot.inventory, reviews: [] } }, {}).includes('no reviews yet'));
+  ok('renderer reads inventory only — analytics may be absent', renderDashboardHtml({ inventory: snapshot.inventory }, { generated_at: 'X' }).includes('Generated X'));
 }
 
 console.log(`\n${fail ? 'RED' : 'GREEN'} — ${pass} passed, ${fail} failed`);

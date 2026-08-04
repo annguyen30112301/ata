@@ -15,12 +15,13 @@ export async function buildDashboard(root = ROOT) {
   const html = renderDashboardHtml(snapshot, { generated_at: new Date().toISOString() });
   const path = resolve(root, 'dashboard', 'index.html');
   await writeFile(path, html);
+  const inv = snapshot.inventory;
   return {
     path,
-    hypotheses: snapshot.hypotheses.length,
-    engines: snapshot.engines.reduce((n, e) => n + e.versions.length, 0),
-    knowledge: snapshot.knowledge.packages.length,
-    reviews: snapshot.reviews.length,
+    hypotheses: inv.hypotheses.length,
+    engines: inv.engines.reduce((n, e) => n + e.versions.length, 0),
+    knowledge: inv.knowledge.packages.length,
+    reviews: inv.reviews.length,
   };
 }
 
