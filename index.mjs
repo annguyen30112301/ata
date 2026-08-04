@@ -36,6 +36,9 @@ export { buildDashboard } from './dashboard/build.mjs';
 // Analytics — write the read-only evidence projection to disk as analytics/analytics.json.
 export { buildAnalytics } from './analytics/build.mjs';
 
+// Decision — project the AnalyticsSnapshot into recommendations and write them as decision/decision.json.
+export { buildDecision } from './decision/build.mjs';
+
 // Intentionally NOT exported (internal — import by deep path if you really need them, at your own risk):
 //   report/model.mjs   classify · overallVerdict · GATE   (renderer internals)
 //   rules/engine.mjs   makeRuling · SEVERITY              (Ruling constructor + label map)
