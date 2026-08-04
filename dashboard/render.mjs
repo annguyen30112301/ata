@@ -8,6 +8,18 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', 
 export function renderDashboardHtml(snapshot, { generated_at = '' } = {}) {
   const s = snapshot.inventory;
   const engineCount = s.engines.reduce((n, e) => n + e.versions.length, 0);
+
+  // Analytics Summary — overview-level only (reports/reviews, verdict spread, override rate, would-block).
+  // Rendered ONLY if analytics is present, so inventory and analytics degrade independently: if the
+  // analytics branch is absent (disabled, failed to build), the dashboard still renders inventory intact.
+  const a = snapshot.analytics;
+  const analyticsCard = a ? `
+  <div class="card"><h2>Analytics Summary</h2>
+    <div class="row"><span class="k">Reports · Reviews</span><span class="v mono">${a.overview.reports} · ${a.overview.reviews}</span></div>
+    <div class="row"><span class="k">Implementation verdicts</span><span class="v mono">${Object.entries(a.benchmark.verdict_distribution).map(([k, n]) => `${k} ${n}`).join(' · ')}</span></div>
+    <div class="row"><span class="k">Human override rate</span><span class="v">${(a.review.override_rate * 100).toFixed(0)}%</span></div>${a.rule ? `
+    <div class="row"><span class="k">Would block @ ${esc(a.rule.context.env || '—')}</span><span class="v mono">${a.rule.would_block} / ${a.rule.evaluated}</span></div>` : ''}
+  </div>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AVF — Automation Validation Dashboard</title><style>
 :root{--bg:#0f1115;--card:#171a21;--fg:#e6e8ec;--mut:#9aa3af;--line:#262b34;--ok:#2ec26b;--warn:#e0a530;--accent:#6ea8fe}
@@ -33,7 +45,7 @@ h1{font-size:22px;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 20px}
 <p class="sub">Project Horizon · AVF — evidence → benchmark → engine → verdict → human review → knowledge</p>
 <div class="principle"><b>The Proof Principle</b> — every evolvable transformation stands behind an invariant artifact and emits a verifiable proof.</div>
 <p class="loop">Evidence&nbsp;→&nbsp;Benchmark&nbsp;→&nbsp;Engine&nbsp;→&nbsp;<b>Verdict</b>&nbsp;→&nbsp;Human&nbsp;Review&nbsp;→&nbsp;Learning</p>
-<div class="grid">
+<div class="grid">${analyticsCard}
   <div class="card"><h2>Hypotheses — the knowledge map</h2>
     ${s.hypotheses.map(h => `<div class="row"><span class="k"><b>${h.id}</b> · ${h.dim}${h.live ? ` <span class="mono" style="color:var(--mut)">· live: ${esc(h.live)}</span>` : ''}</span><span class="v">${badge(h.status)}</span></div>`).join('')}
   </div>

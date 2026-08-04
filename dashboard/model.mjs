@@ -5,12 +5,13 @@
 // NOTE: this DashboardSnapshot is the DASHBOARD's data model. It COMPOSES two projections:
 //   - inventory: the dashboard's own view (repo scan + authored context — dimensions, reality-test log);
 //   - analytics: the pure evidence projection (analytics/AnalyticsSnapshot), read-only.
-// Composing analytics here (rather than merging it into one flat DTO) means a later RuleMetrics/TrendMetrics
-// only enriches `analytics` — the dashboard's wiring and the renderer's inventory contract stay untouched.
+// The analytics branch is obtained through the Analytics API (buildSnapshot) — the dashboard depends on
+// WHAT Analytics returns, not on HOW it is built (which evidence + which default policy). So a later
+// RuleMetrics/TrendMetrics enriches `analytics` with no change here and no change to the renderer.
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadEvidence, analyticsSnapshot } from '../analytics/model.mjs';
+import { buildSnapshot } from '../analytics/model.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Authored context (not evidence-derived): the knowledge-map dimensions and the reality-test log.
@@ -42,8 +43,11 @@ export async function dashboardSnapshot(root = ROOT) {
   let gated = 0, permissive = 0;
   for (const d of packages) { try { const p = JSON.parse(await readFile(R(`knowledge/${d}/lifecycle.json`), 'utf8')); (p.lifecycle?.forbidden?.length ? gated++ : permissive++); } catch {} }
 
-  // Read evidence once: reviews feed the inventory; reports + reviews feed the composed analytics projection.
-  const { reports, reviews } = await loadEvidence(root);
+  // Analytics via the API (owns its own evidence + default policy). The inventory keeps its own review
+  // read so the two projections stay independent — either can be built or fail without the other.
+  const analytics = await buildSnapshot(root);
+  let reviews = [];
+  try { reviews = JSON.parse(await readFile(R('oracle/reviews.json'), 'utf8')); } catch { /* none */ }
 
   const inventory = {
     hypotheses: HYPOTHESES,
@@ -53,5 +57,5 @@ export async function dashboardSnapshot(root = ROOT) {
     knowledge: { packages, gated, permissive },
     reviews,
   };
-  return { inventory, analytics: analyticsSnapshot(reports, reviews) };
+  return { inventory, analytics };
 }
