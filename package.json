@@ -50,6 +50,7 @@
     "test:report": "node report-tests/report.test.mjs",
     "test:cli": "node cli-tests/run.mjs",
     "test:examples": "node examples-tests/run.mjs",
+    "test:analytics": "node analytics/snapshot.test.mjs",
     "avf": "node bin/avf.mjs",
     "dashboard": "node dashboard/build.mjs",
     "test:refbridge": "node evolution-tests/referential-bridge.test.mjs",
