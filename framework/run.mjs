@@ -8,6 +8,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { evaluate, FRAMEWORK_VERSION } from './kernel.mjs';
+import { toEntry } from '../run-log/model.mjs';
+import { appendEntry } from '../run-log/store.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -46,6 +48,12 @@ ${'='.repeat(62)}
 run ${verdict.run.run_id.slice(0, 8)} · framework ${FRAMEWORK_VERSION} · schema ${bench.schema_version} · ${verdict.run.timestamp}
 ${verdict.cases.map(r => `  [${r.role.padEnd(10)}] ${r.id.padEnd(9)} oracle=${r.oracle.padEnd(14)} decision=${r.decision.padEnd(14)} -> ${r.status}`).join('\n')}`;
   await writeFile(resolve(ROOT, 'reports', base + '.txt'), txt);
+
+  // Machine history: append ONE RunLogEntry as the LAST side effect of the pipeline. The report is the
+  // primary artifact; this append is secondary and best-effort — a failure costs a single line of history,
+  // never the report or the run's success, so it is caught and never rolled back (run-log contract §7).
+  // run() is the sole writer of the run log; the entry is a pure projection of the verdict above.
+  try { await appendEntry(toEntry(verdict), ROOT); } catch (e) { console.error(`run-log: append skipped — ${e.message}`); }
   return { verdict, txt };
 }
 
