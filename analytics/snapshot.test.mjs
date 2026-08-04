@@ -2,7 +2,7 @@
 // must be deterministic. Analytics is "done" when the numbers are provably correct, not when a chart
 // looks finished. No disk, no reports/ dependency — pure model over fixtures.
 //   node analytics/snapshot.test.mjs
-import { overview, benchmarkMetrics, reviewMetrics, analyticsSnapshot } from './model.mjs';
+import { overview, benchmarkMetrics, reviewMetrics, ruleMetrics, analyticsSnapshot } from './model.mjs';
 
 let pass = 0, fail = 0;
 const ok = (n, c, d = '') => { (c ? pass++ : fail++); console.log(`  ${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  <-- ' + d}`); };
@@ -44,6 +44,24 @@ console.log('\nANALYTICS — ReviewMetrics (human oversight)');
   ok('by_hypothesis: H5 {1,1}, H4 {1,0}', eq(r.by_hypothesis, { H5: { confirm: 1, override: 1 }, H4: { confirm: 1, override: 0 } }), JSON.stringify(r.by_hypothesis));
   const empty = reviewMetrics([]);
   ok('empty reviews → zero rates, no divide-by-zero', empty.total === 0 && empty.confirm_rate === 0 && empty.override_rate === 0);
+}
+
+console.log('\nANALYTICS — RuleMetrics (derived: re-evaluate policy over reports)');
+{
+  const rules = [
+    { name: 'block bad', when: { verdict_in: ['INVALID', 'MISMATCH', 'REFUTED', 'NOT_READY'] }, then: 'block' },
+    { name: 'warn defer', when: { verdict: 'DEFER' }, then: 'warn' },
+  ];
+  // report verdicts are SUPPORTED / INVALID / SUPPORTED → the INVALID blocks (via 'block bad'), rest allow.
+  const rm = ruleMetrics(reports, rules, { env: 'production' });
+  ok('evaluated every report', rm.evaluated === 3);
+  ok('action_distribution: block=1, warn=0, allow=2', eq(rm.action_distribution, { block: 1, warn: 0, allow: 2 }), JSON.stringify(rm.action_distribution));
+  ok('would_block = 1', rm.would_block === 1);
+  ok('by_rule: only "block bad" fired, once', eq(rm.by_rule, { 'block bad': 1 }), JSON.stringify(rm.by_rule));
+  ok('context recorded on the result (auditable)', eq(rm.context, { env: 'production' }));
+  ok('rule appears in snapshot ONLY when a policy is supplied',
+    analyticsSnapshot(reports, reviews, { rules, generated_at: 'X' }).rule !== undefined &&
+    analyticsSnapshot(reports, reviews, { generated_at: 'X' }).rule === undefined);
 }
 
 console.log('\nANALYTICS — snapshot assembly + invariants');

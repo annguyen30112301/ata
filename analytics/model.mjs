@@ -5,6 +5,8 @@
 // (the determinism invariant). Disk I/O lives only in loadEvidence/buildSnapshot at the bottom.
 //   reports[]  = kernel verdicts  { benchmark{hypothesis,verdict}, implementation{engine,verdict,critical_confident_wrong}, counts{...} }
 //   reviews[]  = oracle reviews   { subject{hypothesis}, decision:'confirm'|'override', verdict }
+import { fromKernelVerdict } from '../report/adapters.mjs';
+import { evaluateRules } from '../rules/engine.mjs';
 
 const inc = (obj, key) => { obj[key] = (obj[key] || 0) + 1; return obj; };
 
@@ -50,15 +52,32 @@ export function reviewMetrics(reviews) {
   return { total, confirm, override, confirm_rate: rate(confirm), override_rate: rate(override), by_hypothesis };
 }
 
+// RuleMetrics — DERIVED, not stored: re-evaluate a gating policy over the stored reports and aggregate
+// what would happen. A Ruling is context-dependent, so both `rules` and `context` are inputs, and both are
+// recorded on the result so the numbers are auditable ("under production, this policy would block N").
+export function ruleMetrics(reports, rules, context = {}) {
+  const action_distribution = { block: 0, warn: 0, allow: 0 };
+  const by_rule = {};
+  for (const raw of reports) {
+    const ruling = evaluateRules(fromKernelVerdict(raw), rules, context);
+    inc(action_distribution, ruling.action);
+    for (const m of ruling.matched) inc(by_rule, m.rule);
+  }
+  return { evaluated: reports.length, context, action_distribution, would_block: action_distribution.block, by_rule };
+}
+
 // AnalyticsSnapshot — the DTO. Pure over (reports, reviews): identical evidence yields an identical
 // snapshot save for `generated_at`. It holds numbers only — no logic, and no knowledge of any renderer.
-export function analyticsSnapshot(reports, reviews, { generated_at = new Date().toISOString() } = {}) {
-  return {
+// `rule` appears ONLY when a policy is supplied (it is derived, not part of the base Slice-1 shape).
+export function analyticsSnapshot(reports, reviews, { rules, context = {}, generated_at = new Date().toISOString() } = {}) {
+  const snap = {
     generated_at,
     overview: overview(reports, reviews),
     benchmark: benchmarkMetrics(reports),
     review: reviewMetrics(reviews),
   };
+  if (rules) snap.rule = ruleMetrics(reports, rules, context);
+  return snap;
 }
 
 // ---- I/O boundary: read the existing artifacts, then hand them to the pure model above. ----
@@ -86,7 +105,11 @@ export async function loadEvidence(root = ROOT) {
   return { reports, reviews };
 }
 
-export async function buildSnapshot(root = ROOT) {
+// Default disk snapshot: read evidence + the default gating policy, evaluate RuleMetrics under a chosen
+// context (production = the strictest gate). Missing policy → no rule metrics (never fails for its lack).
+export async function buildSnapshot(root = ROOT, { context = { env: 'production' } } = {}) {
   const { reports, reviews } = await loadEvidence(root);
-  return analyticsSnapshot(reports, reviews);
+  let rules;
+  try { rules = JSON.parse(await readFile(resolve(root, 'rules', 'default.json'), 'utf8')).rules; } catch { /* no policy on disk */ }
+  return analyticsSnapshot(reports, reviews, { rules, context });
 }
