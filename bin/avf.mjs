@@ -6,6 +6,7 @@
 //   avf run <hypothesis> <engine@version>     evaluate an engine against a benchmark
 //   avf report <report.json> [--format …]     render a kernel report as md|pr|json|sarif|teams (+ optional --gate)
 //   avf dashboard                             regenerate the self-contained HTML dashboard
+//   avf analytics                             package the AnalyticsSnapshot as analytics/analytics.json
 //   avf review --reviewer … --decision …      submit a human review of a verdict (append-only oracle)
 //   avf simulate [--verdict … --env …]        run a fake verdict through the rule engine (no CI, no connector)
 //   avf help
@@ -14,6 +15,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run } from '../framework/run.mjs';
 import { buildDashboard } from '../dashboard/build.mjs';
+import { buildAnalytics } from '../analytics/build.mjs';
 import { submitReview, suggestLearning } from '../oracle/review.mjs';
 import { makeReport } from '../report/model.mjs';
 import { fromKernelVerdict } from '../report/adapters.mjs';
@@ -61,6 +63,7 @@ const USAGE = `avf — Automation Validation Framework
       --format md|pr|json|sarif|teams       (default: md)
       --gate [--env <env>] [--rules <path>] also compute the rule-engine Ruling
   avf dashboard                             regenerate dashboard/index.html
+  avf analytics                             write analytics/analytics.json (the snapshot as an artifact)
   avf review --reviewer <name> --decision confirm|override
              --hypothesis <H> --verdict <V> --reason <text>
              [--human-verdict <V>] [--engine <e>] [--case <id>] [--dry-run]
@@ -94,6 +97,13 @@ async function main() {
     case 'dashboard': {
       const r = await buildDashboard();
       console.log(`wrote ${r.path} — ${r.hypotheses} hypotheses · ${r.engines} engines · ${r.knowledge} knowledge packages · ${r.reviews} oracle reviews`);
+      return 0;
+    }
+
+    case 'analytics': {
+      const r = await buildAnalytics();
+      const gate = r.would_block !== null ? ` · ${r.would_block} would-block` : '';
+      console.log(`wrote ${r.jsonPath} + analytics.html — ${r.reports} reports · ${r.reviews} reviews${gate}`);
       return 0;
     }
 

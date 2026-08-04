@@ -7,6 +7,9 @@ node_modules/
 # Generated artifacts (reproducible — never a precondition to tests or a clone)
 reports/
 dashboard/index.html
+run-log/runs.jsonl
+analytics/analytics.json
+analytics/analytics.html
 
 # OS / editor cruft
 .DS_Store
