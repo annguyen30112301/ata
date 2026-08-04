@@ -1,9 +1,13 @@
 // Dashboard renderer — a PURE function of a DashboardSnapshot: the same snapshot (+ the same
 // generated_at) yields the same HTML, byte for byte. No I/O, no repo knowledge, and no clock of its
 // own — the timestamp is injected by the caller. Rendering concerns (badge, esc) live here, not in the model.
-// It reads ONLY snapshot.inventory today; snapshot.analytics is composed but not yet presented.
+// It reads snapshot.inventory plus, when present, snapshot.analytics — as two distinct cards that answer two
+// distinct questions: Analytics Summary = current STATE (latest), Trend = DIRECTION (transitions over history).
 const badge = s => `<span class="b ${/(SUPPORTED|VALID)/.test(s) ? 'ok' : /FRONTIER|DEFER|pending/.test(s) ? 'warn' : 'muted'}">${s}</span>`;
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// Trend direction badge — coloured by VALENCE, not by arrow: good (toward_supported / ccw falling) = ok,
+// bad (away_from_supported / ccw rising) = warn, neutral (unchanged / flat / insufficient) = muted.
+const dirBadge = d => `<span class="b ${/toward_supported|falling/.test(d) ? 'ok' : /away_from_supported|rising/.test(d) ? 'warn' : 'muted'}">${esc(d)}</span>`;
 
 export function renderDashboardHtml(snapshot, { generated_at = '' } = {}) {
   const s = snapshot.inventory;
@@ -19,6 +23,27 @@ export function renderDashboardHtml(snapshot, { generated_at = '' } = {}) {
     <div class="row"><span class="k">Implementation verdicts</span><span class="v mono">${Object.entries(a.benchmark.verdict_distribution).map(([k, n]) => `${k} ${n}`).join(' · ')}</span></div>
     <div class="row"><span class="k">Human override rate</span><span class="v">${(a.review.override_rate * 100).toFixed(0)}%</span></div>${a.rule ? `
     <div class="row"><span class="k">Would block @ ${esc(a.rule.context.env || '—')}</span><span class="v mono">${a.rule.would_block} / ${a.rule.evaluated}</span></div>` : ''}
+  </div>` : '';
+
+  // Trend card — DIRECTION (transitions), a peer of but distinct from Analytics Summary (latest state). It
+  // presents direction TOKENS only (from/to endpoints stay in the snapshot for the explorer, not the summary).
+  // Shown whenever analytics is present — even with no history: "no history yet" is a valid model state, and
+  // hiding the card would read as "feature missing". Dashboard owns no logic here; TrendMetrics already did it.
+  const t = a && a.trend;
+  const hasHistory = t && t.hypotheses;
+  const nHyp = hasHistory ? Object.keys(t.hypotheses).length : 0;
+  const flips = hasHistory ? Object.values(t.stability || {}).reduce((n, s) => n + s.flips, 0) : 0;
+  // Stability as a STATE, not a bare number — a summary reader should see "ok / not ok" without inferring it.
+  const flipBadge = flips === 0 ? `<span class="b ok">Stable (0 flips)</span>` : `<span class="b warn">${flips} flip${flips === 1 ? '' : 's'}</span>`;
+  const trendCard = a ? `
+  <div class="card"><h2>Trend (Local Machine)</h2>${hasHistory ? `
+    <div class="row"><span class="k" style="color:var(--mut);font-size:12px">${nHyp} tracked hypothes${nHyp === 1 ? 'is' : 'es'}</span><span class="v"></span></div>
+    <div class="row"><span class="k" style="color:var(--mut);font-size:12px">Direction — verdict trajectory</span><span class="v"></span></div>
+    ${Object.entries(t.hypotheses).map(([h, x]) => `<div class="row"><span class="k mono">${esc(h)}</span><span class="v">${dirBadge(x.verdict.direction)}</span></div>`).join('')}
+    <div class="row"><span class="k" style="color:var(--mut);font-size:12px">Confidence — critical-confident-wrong</span><span class="v"></span></div>
+    ${Object.entries(t.hypotheses).map(([h, x]) => `<div class="row"><span class="k mono">${esc(h)}</span><span class="v">${dirBadge(x.ccw.direction)}</span></div>`).join('')}
+    <div class="row"><span class="k">Fixed-specimen stability</span><span class="v">${flipBadge}</span></div>`
+    : `<div class="row"><span class="k" style="color:var(--mut)">No history yet. Run AVF to begin collecting local execution history.</span><span class="v"></span></div>`}
   </div>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AVF — Automation Validation Dashboard</title><style>
@@ -45,7 +70,7 @@ h1{font-size:22px;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 20px}
 <p class="sub">Project Horizon · AVF — evidence → benchmark → engine → verdict → human review → knowledge</p>
 <div class="principle"><b>The Proof Principle</b> — every evolvable transformation stands behind an invariant artifact and emits a verifiable proof.</div>
 <p class="loop">Evidence&nbsp;→&nbsp;Benchmark&nbsp;→&nbsp;Engine&nbsp;→&nbsp;<b>Verdict</b>&nbsp;→&nbsp;Human&nbsp;Review&nbsp;→&nbsp;Learning</p>
-<div class="grid">${analyticsCard}
+<div class="grid">${analyticsCard}${trendCard}
   <div class="card"><h2>Hypotheses — the knowledge map</h2>
     ${s.hypotheses.map(h => `<div class="row"><span class="k"><b>${h.id}</b> · ${h.dim}${h.live ? ` <span class="mono" style="color:var(--mut)">· live: ${esc(h.live)}</span>` : ''}</span><span class="v">${badge(h.status)}</span></div>`).join('')}
   </div>
