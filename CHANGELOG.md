@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.0 — 2026-08-04
 
 **Analytics is now a standalone subsystem.** Evidence Analytics is no longer the dashboard's private
 computation — it is a read-only projection with its own DTO (`AnalyticsSnapshot`) and multiple independent
