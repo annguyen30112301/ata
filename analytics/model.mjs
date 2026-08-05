@@ -11,6 +11,14 @@ import { VERDICT_DIRECTION, CCW_DIRECTION } from './directions.mjs';
 
 const inc = (obj, key) => { obj[key] = (obj[key] || 0) + 1; return obj; };
 
+// sortKeys — re-emit a data-keyed map in CANONICAL (sorted) key order. The distribution maps below are keyed by
+// data (hypotheses, verdicts, engines, rule names) and built in ENCOUNTER order, so without this their key order
+// would follow the input order — and `loadEvidence` reads reports/ via readdir, whose order is not guaranteed
+// across filesystems. Canonicalising makes the serialized snapshot a pure function of the evidence CONTENT, not
+// its order: identical evidence → identical bytes, on any machine. (Fixed-key maps like case_totals are already
+// canonical and are left alone.)
+const sortKeys = o => Object.fromEntries(Object.keys(o).sort().map(k => [k, o[k]]));
+
 // Overview — how much evidence exists, and how much of the map it covers.
 export function overview(reports, reviews) {
   return {
@@ -35,7 +43,7 @@ export function benchmarkMetrics(reports) {
     for (const k of ['regression', 'preserved', 'guard', 'held', 'refutation', 'survived']) case_totals[k] += r.counts?.[k] || 0;
     case_totals.critical_confident_wrong += r.implementation?.critical_confident_wrong || 0;
   }
-  return { by_hypothesis, verdict_distribution, engine_distribution, case_totals };
+  return { by_hypothesis: sortKeys(by_hypothesis), verdict_distribution: sortKeys(verdict_distribution), engine_distribution: sortKeys(engine_distribution), case_totals };
 }
 
 // ReviewMetrics — human oversight: how often a human confirms vs. overrides a machine verdict.
@@ -50,7 +58,7 @@ export function reviewMetrics(reviews) {
     else if (rv.decision === 'override') { override++; by_hypothesis[h].override++; }
   }
   const rate = n => (total ? n / total : 0);
-  return { total, confirm, override, confirm_rate: rate(confirm), override_rate: rate(override), by_hypothesis };
+  return { total, confirm, override, confirm_rate: rate(confirm), override_rate: rate(override), by_hypothesis: sortKeys(by_hypothesis) };
 }
 
 // RuleMetrics — DERIVED, not stored: re-evaluate a gating policy over the stored reports and aggregate
@@ -64,7 +72,7 @@ export function ruleMetrics(reports, rules, context = {}) {
     inc(action_distribution, ruling.action);
     for (const m of ruling.matched) inc(by_rule, m.rule);
   }
-  return { evaluated: reports.length, context, action_distribution, would_block: action_distribution.block, by_rule };
+  return { evaluated: reports.length, context, action_distribution, would_block: action_distribution.block, by_rule: sortKeys(by_rule) };
 }
 
 // TrendMetrics — the only history-over-time family (docs/trend-metrics.contract.md). It reads the append-only

@@ -30,8 +30,9 @@ console.log('\nANALYTICS — BenchmarkMetrics (two layers kept distinct)');
 {
   const b = benchmarkMetrics(reports);
   ok('by_hypothesis = benchmark-owned verdict per hypothesis', eq(b.by_hypothesis, { H4: 'SUPPORTED (constructive)', H5: 'SUPPORTED (constructive)' }), JSON.stringify(b.by_hypothesis));
-  ok('verdict_distribution over IMPLEMENTATION verdicts: SUPPORTED=2, INVALID=1', eq(b.verdict_distribution, { SUPPORTED: 2, INVALID: 1 }), JSON.stringify(b.verdict_distribution));
-  ok('engine_distribution: one report each', eq(b.engine_distribution, { 'transition@v0.1': 1, 'referential@v0': 1, 'referential@v0.3': 1 }), JSON.stringify(b.engine_distribution));
+  // canonical (sorted) key order — the maps are emitted independent of encounter order (D.4a).
+  ok('verdict_distribution over IMPLEMENTATION verdicts: SUPPORTED=2, INVALID=1 (canonical key order)', eq(b.verdict_distribution, { INVALID: 1, SUPPORTED: 2 }), JSON.stringify(b.verdict_distribution));
+  ok('engine_distribution: one report each (canonical key order)', eq(b.engine_distribution, { 'referential@v0': 1, 'referential@v0.3': 1, 'transition@v0.1': 1 }), JSON.stringify(b.engine_distribution));
   ok('case_totals summed across reports (+ critical_confident_wrong=1)',
     eq(b.case_totals, { regression: 10, preserved: 9, guard: 3, held: 2, refutation: 6, survived: 5, critical_confident_wrong: 1 }), JSON.stringify(b.case_totals));
 }
@@ -41,7 +42,7 @@ console.log('\nANALYTICS — ReviewMetrics (human oversight)');
   const r = reviewMetrics(reviews);
   ok('total=3, confirm=2, override=1', r.total === 3 && r.confirm === 2 && r.override === 1);
   ok('rates: confirm=2/3, override=1/3', Math.abs(r.confirm_rate - 2 / 3) < 1e-9 && Math.abs(r.override_rate - 1 / 3) < 1e-9, `${r.confirm_rate}/${r.override_rate}`);
-  ok('by_hypothesis: H5 {1,1}, H4 {1,0}', eq(r.by_hypothesis, { H5: { confirm: 1, override: 1 }, H4: { confirm: 1, override: 0 } }), JSON.stringify(r.by_hypothesis));
+  ok('by_hypothesis: H5 {1,1}, H4 {1,0} (canonical key order)', eq(r.by_hypothesis, { H4: { confirm: 1, override: 0 }, H5: { confirm: 1, override: 1 } }), JSON.stringify(r.by_hypothesis));
   const empty = reviewMetrics([]);
   ok('empty reviews → zero rates, no divide-by-zero', empty.total === 0 && empty.confirm_rate === 0 && empty.override_rate === 0);
 }
