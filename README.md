@@ -99,26 +99,26 @@ The front door is the `avf` CLI (`avf run · report · dashboard · review · si
 ```
 node bin/avf.mjs run <hypothesis> <engine@version>    # or: node framework/run.mjs <h> <engine@version>
 
-node run.mjs h0 observation@v0        # -> REFUTED  (RH0a: locale variance read as instability)
-node run.mjs h0 observation@v0.1      # -> SUPPORTED (invariant/variant split)
+node framework/run.mjs h0 observation@v0        # -> REFUTED  (RH0a: locale variance read as instability)
+node framework/run.mjs h0 observation@v0.1      # -> SUPPORTED (invariant/variant split)
 
-node run.mjs h1 matcher@v0            # -> REFUTED  (RH1a: 1 critical confident-wrong, no owner)
-node run.mjs h1 matcher@v0.1          # -> SUPPORTED (owner partition)
+node framework/run.mjs h1 matcher@v0            # -> REFUTED  (RH1a: 1 critical confident-wrong, no owner)
+node framework/run.mjs h1 matcher@v0.1          # -> SUPPORTED (owner partition)
 
-node run.mjs h2 grounding@v0          # -> INVALID  (over-reach on guard + misses RH2b)
-node run.mjs h2 grounding@v0.1        # -> INVALID  (regresses the benign relabel)  ← open frontier
+node framework/run.mjs h2 grounding@v0          # -> INVALID  (over-reach on guard + misses RH2b)
+node framework/run.mjs h2 grounding@v0.1        # -> INVALID  (regresses the benign relabel)  ← open frontier
 
-node run.mjs h3 resolution@v0         # -> REFUTED  (RH3a/RH3b, 2 critical confident-wrong)
-node run.mjs h3 resolution@v0.1       # -> REFUTED  (RH3c-001, DAG assumption)
-node run.mjs h3 resolution@v0.2       # -> SUPPORTED
+node framework/run.mjs h3 resolution@v0         # -> REFUTED  (RH3a/RH3b, 2 critical confident-wrong)
+node framework/run.mjs h3 resolution@v0.1       # -> REFUTED  (RH3c-001, DAG assumption)
+node framework/run.mjs h3 resolution@v0.2       # -> SUPPORTED
 
-node run.mjs h4 transition@v0         # -> INVALID  (over-reach guard + illegal edges) [added in Evolution]
-node run.mjs h4 transition@v0.1       # -> SUPPORTED (lifecycle-aware, DEFERs outside lifecycle)
+node framework/run.mjs h4 transition@v0         # -> INVALID  (over-reach guard + illegal edges) [added in Evolution]
+node framework/run.mjs h4 transition@v0.1       # -> SUPPORTED (lifecycle-aware, DEFERs outside lifecycle)
 
-node run.mjs h5 referential@v0        # -> INVALID  (trusts the test result; follows no reference)
-node run.mjs h5 referential@v0.1      # -> INVALID  (refuted by REAL data: only knew the PR merge commit)
-node run.mjs h5 referential@v0.2      # -> SUPPORTED (build commit valid if it is the PR's merge OR source commit)
-node run.mjs h5 referential@v0.3      # -> SUPPORTED (build->PR via sourceBranch refs/pull/{id}/merge — real ADO link)
+node framework/run.mjs h5 referential@v0        # -> INVALID  (trusts the test result; follows no reference)
+node framework/run.mjs h5 referential@v0.1      # -> INVALID  (refuted by REAL data: only knew the PR merge commit)
+node framework/run.mjs h5 referential@v0.2      # -> SUPPORTED (build commit valid if it is the PR's merge OR source commit)
+node framework/run.mjs h5 referential@v0.3      # -> SUPPORTED (build->PR via sourceBranch refs/pull/{id}/merge — real ADO link)
 ```
 Swap the engine; the benchmark is untouched; the verdict tiers itself.
 Note **H2**: no engine reaches SUPPORTED yet — the runtime *shows* the semantic frontier
