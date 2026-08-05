@@ -1,12 +1,13 @@
 // Decision — the model. A pure projection of ONE AnalyticsSnapshot into a RecommendationSnapshot; see
 // docs/decision.contract.md and docs/adr/0002-decision-contract.md for the contract. It answers exactly one
 // question — "what action follows from the evidence?" — and NOTHING else: it advises, never acts, never judges
-// correctness, and reads the snapshot ALONE (no reports/, reviews.json, or runs.jsonl — this file imports no fs).
+// correctness, and reads the snapshot ALONE. Its dependency graph reaches no fs: it imports only the direction
+// vocabulary leaf (analytics/directions.mjs), never analytics/model.mjs — proven in decision/boundary.test.mjs.
 //
 // Same snapshot → same recommendations (save for generated_at): a recommendation is a projection, not an opinion.
 // Every recommendation carries an id (its stable identity), a priority (a POLICY choice), a kind, a subject
 // (the locus), and an evidence[] (the snapshot field(s) that fired it, walkable back to the number).
-import { VERDICT_DIRECTION, CCW_DIRECTION } from '../analytics/model.mjs';
+import { VERDICT_DIRECTION, CCW_DIRECTION } from '../analytics/directions.mjs';
 
 // ---- Closed enums (exactly like VerdictDirection): a consumer never has to guess. ----
 export const PRIORITY = Object.freeze({ HIGH: 'HIGH', MEDIUM: 'MEDIUM', LOW: 'LOW' });

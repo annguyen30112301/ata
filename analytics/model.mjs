@@ -7,6 +7,7 @@
 //   reviews[]  = oracle reviews   { subject{hypothesis}, decision:'confirm'|'override', verdict }
 import { fromKernelVerdict } from '../report/adapters.mjs';
 import { evaluateRules } from '../rules/engine.mjs';
+import { VERDICT_DIRECTION, CCW_DIRECTION } from './directions.mjs';
 
 const inc = (obj, key) => { obj[key] = (obj[key] || 0) + 1; return obj; };
 
@@ -74,9 +75,10 @@ export function ruleMetrics(reports, rules, context = {}) {
 // it describes the current run log, not the project's evolution. Pure over its entries.
 const SUPPORTED = 'SUPPORTED';
 
-// CLOSED enums — the only values `direction` can take, so a renderer or API consumer never has to guess.
-export const VERDICT_DIRECTION = Object.freeze({ TOWARD: 'toward_supported', AWAY: 'away_from_supported', UNCHANGED: 'unchanged', INSUFFICIENT: 'insufficient' });
-export const CCW_DIRECTION = Object.freeze({ FALLING: 'falling', RISING: 'rising', FLAT: 'flat', INSUFFICIENT: 'insufficient' });
+// CLOSED enums — the direction vocabularies now live in the leaf ./directions.mjs (no imports, no I/O): imported
+// above for use below, and RE-EXPORTED here so existing `from './model.mjs'` importers are unchanged. A consumer
+// that needs only the vocabulary (Decision reading `direction`) imports the leaf and never pulls in this model.
+export { VERDICT_DIRECTION, CCW_DIRECTION };
 
 // Group entries into ordered series (oldest first) by a key. Timestamp sort; a fixed-specimen series is
 // normally flat (kernel determinism), so any movement in it is a signal, not noise.
