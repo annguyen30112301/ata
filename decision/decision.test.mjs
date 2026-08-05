@@ -2,7 +2,7 @@
 // snapshot.test.mjs / trend.test.mjs). The fixture is a hand-built AnalyticsSnapshot with KNOWN signals; the
 // bars assert the recommendations that the §4 rule set must produce from it — nothing more, nothing invented.
 //   node decision/decision.test.mjs
-import { recommend, recommendationSnapshot, resolveSignal, mergeByIdentity, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
+import { recommend, recommendationSnapshot, resolveSignal, mergeByIdentity, defaultPolicy, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
 
 let pass = 0, fail = 0;
 const ok = (n, c, d = '') => { (c ? pass++ : fail++); console.log(`  ${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  <-- ' + d}`); };
@@ -110,21 +110,31 @@ try {
     ok('7. pure: the input snapshot is not mutated', JSON.stringify(frozen) === before);
   }
 
-  // MERGE — fold by IDENTITY, not by signal (Phase C.1). The pipeline is collect → merge → sort; merge folds any
-  // candidates that share an identity (subject, kind) into one recommendation whose evidence accumulates.
-  console.log('\nMERGE — same concern → one recommendation, evidence accumulates (by identity, not by signal)');
+  // MERGE — GROUP by identity, accumulate evidence + contributing signals; merge owns grouping ONLY. A candidate
+  // (pre-policy) carries evidence + the signal that produced it (policyKeys) and NO priority.
+  console.log('\nMERGE — same concern → one group, evidence accumulates; merge does not decide priority (C.2)');
   {
-    // The acceptance case: two candidates that both demand review(H4) — one from verdict-away, one from an
-    // override signal — are ONE recommendation with TWO evidence entries, never two rows.
-    const away = { id: 'H4:review', priority: 'HIGH', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'trend.hypotheses.H4.verdict.direction', value: 'away_from_supported' }] };
-    const override = { id: 'H4:review', priority: 'MEDIUM', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'review.by_hypothesis.H4.override_rate', value: 0.6 }] };
+    const away = { id: 'H4:review', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'trend.hypotheses.H4.verdict.direction', value: 'away_from_supported' }], policyKeys: ['verdict_away'] };
+    const override = { id: 'H4:review', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'review.by_hypothesis.H4.override_rate', value: 0.6 }], policyKeys: ['override_rate'] };
     const merged = mergeByIdentity([away, override]);
-    ok('two candidates with the same identity → ONE recommendation, not two', merged.length === 1 && merged[0].id === 'H4:review');
-    ok('their evidence accumulates in order (append, never replace)', eq(merged[0].evidence, [away.evidence[0], override.evidence[0]]));
-    ok('the most-urgent priority wins the fold (HIGH over MEDIUM)', merged[0].priority === PRIORITY.HIGH);
+    ok('two candidates with the same identity → ONE group, not two', merged.length === 1 && merged[0].id === 'H4:review');
+    ok('evidence accumulates in order (append, never replace)', eq(merged[0].evidence, [away.evidence[0], override.evidence[0]]));
+    ok('contributing signals accumulate too (the policy will weigh them)', eq(merged[0].policyKeys, ['verdict_away', 'override_rate']));
+    ok('merge assigns NO priority — that is the policy stage\'s job now', merged[0].priority === undefined);
     ok('distinct identities are never folded', mergeByIdentity([away, { ...override, id: 'project:review', subject: { scope: 'project' } }]).length === 2);
-    // Dormant on real input: the §4 rules emit distinct ids, so recommend() over the full fixture is unchanged.
-    ok('no false fold: recommend(full) still yields the five distinct recommendations, each with one evidence', recommend(full).length === 5 && recommend(full).every(r => r.evidence.length === 1));
+  }
+
+  // POLICY — a separate stage decides priority; the default preserves behavior, and it is INJECTABLE (C.2).
+  console.log('\nPOLICY — priority is the policy\'s to decide; the seam is proven by injection, not by a value');
+  {
+    const h4 = recommend(full).find(r => r.id === 'H4:review');
+    ok('default policy preserves behavior: recommend(full) gives H4:review = HIGH', h4 && h4.priority === PRIORITY.HIGH);
+    // The seam: an injected policy that always returns LOW overrides the default HIGH — only possible because
+    // merge no longer owns priority. Not testing "HIGH is right"; testing WHO decides priority.
+    const low = recommend(full, { policy: () => PRIORITY.LOW });
+    ok('inject alwaysLow → every recommendation is LOW (merge no longer owns priority)', low.length === 5 && low.every(r => r.priority === PRIORITY.LOW));
+    // The default arbitration ("most-urgent of the group") now lives in the policy, not in merge.
+    ok('default policy arbitrates a folded group to the most-urgent contributing signal (HIGH over MEDIUM)', defaultPolicy({ policyKeys: ['override_rate', 'verdict_away'] }) === PRIORITY.HIGH);
   }
 
   // Guard — thresholds live in one place and are the numbers the §4 table names.

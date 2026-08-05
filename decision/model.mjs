@@ -19,9 +19,9 @@ export const KIND = Object.freeze({ REVIEW: 'REVIEW', INVESTIGATE: 'INVESTIGATE'
 // recommendations. Never write `${subject}:${enumValue}` — that conflates encoding with identity.
 const KIND_KEY = Object.freeze({ [KIND.REVIEW]: 'review', [KIND.INVESTIGATE]: 'investigate', [KIND.HOLD]: 'hold' });
 
-// DEFAULT_POLICY — priority is a POLICY choice, not an analytic fact (contract §4). v0 reads priorities from
-// this one table (the default policy); a v0+ policy layer would inject an alternative without touching the signal
-// detection below. Priorities are READ from here, never inlined at a call site.
+// DEFAULT_POLICY — the DATA of the default policy: the priority each signal contributes (contract §4, priority is
+// a policy choice, not an analytic fact). collect only TAGS a candidate with its policyKey; the policy STAGE
+// (defaultPolicy, below) reads this table. An injected policy may ignore it entirely (recommend's `policy` option).
 export const DEFAULT_POLICY = Object.freeze({
   verdict_away: PRIORITY.HIGH,      // implementation moving away from supported
   ccw_rising: PRIORITY.HIGH,        // confident-and-wrong on a critical case is growing
@@ -37,7 +37,10 @@ export const THRESHOLDS = Object.freeze({ flips: 1, would_block: 0, override_rat
 // layout, so normalizing subject to { type, ref } later leaves every id stable (contract §3, subject-is-an-ADT).
 const subjectRef = s => s.scope ?? (s.engine ? `${s.hypothesis}·${s.engine}` : s.hypothesis);
 const idOf = (subject, kind) => `${subjectRef(subject)}:${KIND_KEY[kind]}`;   // serialize(subject-ref, semantic-kind)
-const rec = (policyKey, kind, subject, evidence) => ({ id: idOf(subject, kind), priority: DEFAULT_POLICY[policyKey], kind, subject, evidence });
+// A CANDIDATE (pre-policy): identity + evidence + the signal that produced it (policyKeys). It carries NO
+// priority — detection tags the signal; the policy stage assigns priority later. policyKeys is a list so merge
+// can accumulate contributing signals the way evidence accumulates.
+const rec = (policyKey, kind, subject, evidence) => ({ id: idOf(subject, kind), kind, subject, evidence, policyKeys: [policyKey] });
 
 const RANK = { HIGH: 0, MEDIUM: 1, LOW: 2 };   // ordering: priority (HIGH first), then id — deterministic
 
@@ -88,37 +91,51 @@ function collectRecommendations(snapshot) {
 // sortRecommendations — the DTO's deterministic order: priority (HIGH first), then id. Pure, non-mutating.
 const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-// mergeByIdentity — fold candidates that share an id (= the identity (subject, kind)) into ONE recommendation
-// whose evidence[] is the concatenation of theirs (contract §3: the id is the merge key). This is the stage the
-// collect→sort seam was built for (§7): a single concern is one row with accumulated support, never duplicated.
-// The most-urgent priority wins the fold; making that arbitration injectable is a policy concern (a later phase).
-// NOTE: the §4 rule set never emits two candidates with the same id, so on today's snapshots this is a NO-OP —
-// it activates the moment a rule shares an identity (e.g. a future per-hypothesis signal).
+// mergeByIdentity — GROUP candidates that share an id (= the identity (subject, kind)) into one, accumulating
+// their evidence AND their contributing signals (policyKeys). It owns grouping only: it does NOT decide priority
+// — that is the policy stage's job (SRP). This is the stage the collect→sort seam was built for (§7). The §4 rule
+// set never emits two candidates with the same id, so on today's snapshots the fold is a NO-OP; it activates the
+// moment a rule shares an identity.
 function mergeByIdentity(candidates) {
   const byId = new Map();
   for (const c of candidates) {
     const prev = byId.get(c.id);
-    if (!prev) { byId.set(c.id, { ...c, evidence: [...c.evidence] }); continue; }
-    prev.evidence.push(...c.evidence);                                       // same concern → more support, not a new row
-    if (RANK[c.priority] < RANK[prev.priority]) prev.priority = c.priority;  // most urgent wins (policy may refine, C.2)
+    if (!prev) { byId.set(c.id, { ...c, evidence: [...c.evidence], policyKeys: [...c.policyKeys] }); continue; }
+    prev.evidence.push(...c.evidence);        // same concern → more support, not a new row
+    prev.policyKeys.push(...c.policyKeys);     // and more contributing signals for the policy to weigh
   }
   return [...byId.values()];
 }
 export { mergeByIdentity };
 
-// recommend — the pipeline: collect → merge → sort. Merge folds any candidates that share an identity, so a
-// single concern is one recommendation with accumulated evidence, never duplicated rows (contract §7).
-export function recommend(snapshot) {
-  return sortRecommendations(mergeByIdentity(collectRecommendations(snapshot)));
+// defaultPolicy — the default arbitration: a group's priority is the MOST-URGENT of its contributing signals'
+// default priorities (DEFAULT_POLICY). This is the business rule the C.1 merge used to hold; it now lives in the
+// policy stage, its own responsibility. A caller may inject a different policy via recommend's `policy` option.
+export function defaultPolicy(group) {
+  return group.policyKeys.map(k => DEFAULT_POLICY[k]).reduce((a, b) => (RANK[b] < RANK[a] ? b : a));
+}
+
+// applyPolicy — the stage between merge and sort: turn each grouped candidate into a finished recommendation by
+// asking the policy for its priority. The policy sees the whole group (accumulated evidence + contributing
+// signals) and returns a priority; the internal `policyKeys` never reach the DTO.
+function applyPolicy(groups, policy) {
+  return groups.map(g => ({ id: g.id, priority: policy(g), kind: g.kind, subject: g.subject, evidence: g.evidence }));
+}
+
+// recommend — the pipeline: collect → merge → applyPolicy → sort. Four separate stages (SRP): detection,
+// grouping, priority, ordering. Merge never decides priority; the policy does — and it is INJECTABLE (default
+// preserves behavior). No DTO change: a recommendation still carries {id, priority, kind, subject, evidence}.
+export function recommend(snapshot, { policy = defaultPolicy } = {}) {
+  return sortRecommendations(applyPolicy(mergeByIdentity(collectRecommendations(snapshot)), policy));
 }
 
 // RecommendationSnapshot — the DTO (contract §3). Pure over the snapshot: identical snapshot yields an identical
 // snapshot save for `generated_at`. `source` records WHICH snapshot this reads (provenance); no triggering signal
 // → { recommendations: [] } (not an error). This is the sole contract between Decision and its consumers.
-export function recommendationSnapshot(snapshot, { generated_at = new Date().toISOString() } = {}) {
+export function recommendationSnapshot(snapshot, { generated_at = new Date().toISOString(), policy } = {}) {
   return {
     generated_at,
     source: { snapshot_generated_at: snapshot?.generated_at ?? null },
-    recommendations: recommend(snapshot),
+    recommendations: recommend(snapshot, { policy }),
   };
 }
