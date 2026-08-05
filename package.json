@@ -61,7 +61,7 @@
     "test:report": "node report-tests/report.test.mjs",
     "test:cli": "node cli-tests/run.mjs",
     "test:examples": "node examples-tests/run.mjs",
-    "test:analytics": "node analytics/snapshot.test.mjs && node analytics/artifact.test.mjs && node analytics/trend.test.mjs && node analytics/render.test.mjs",
+    "test:analytics": "node analytics/snapshot.test.mjs && node analytics/artifact.test.mjs && node analytics/trend.test.mjs && node analytics/render.test.mjs && node analytics/properties.test.mjs",
     "test:runlog": "node run-log/run-log.test.mjs",
     "test:decision": "node decision/decision.test.mjs && node decision/artifact.test.mjs && node decision/render.test.mjs && node decision/boundary.test.mjs && node decision/properties.test.mjs",
     "test:overview": "node overview/overview.test.mjs",
