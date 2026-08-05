@@ -46,7 +46,16 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node kernel-tests/golden.mjs && node connectors/tests/run.mjs",
+    "test": "npm run test:all",
+    "test:all": "npm run test:foundation && npm run test:analytics-stack && npm run test:presentation-stack && npm run test:integration-stack",
+    "test:quick": "npm run test:kernel && npm run test:connectors",
+
+    "test:foundation": "npm run test:kernel && npm run test:connectors && npm run test:evolution && npm run test:bridge && npm run test:extract && npm run test:policy && npm run test:autoselect && npm run test:h5 && npm run test:refbridge && npm run test:oracle",
+    "test:analytics-stack": "npm run test:analytics && npm run test:runlog && npm run test:decision",
+    "test:presentation-stack": "npm run test:report && npm run test:overview && npm run test:dashboard",
+    "test:integration-stack": "npm run test:jira && npm run test:cli && npm run test:examples",
+    "test:live": "npm run test:integration",
+
     "test:kernel": "node kernel-tests/golden.mjs",
     "test:connectors": "node connectors/tests/run.mjs",
     "test:integration": "node connectors/azure-devops/live.test.mjs",
@@ -57,6 +66,7 @@
     "test:policy": "node evolution-tests/policy-modes.test.mjs",
     "test:autoselect": "node evolution-tests/bridge-autoselect.test.mjs",
     "test:h5": "node evolution-tests/h5.test.mjs",
+    "test:refbridge": "node evolution-tests/referential-bridge.test.mjs",
     "test:oracle": "node oracle-tests/oracle.test.mjs",
     "test:report": "node report-tests/report.test.mjs",
     "test:cli": "node cli-tests/run.mjs",
@@ -65,13 +75,13 @@
     "test:runlog": "node run-log/run-log.test.mjs",
     "test:decision": "node decision/decision.test.mjs && node decision/artifact.test.mjs && node decision/render.test.mjs && node decision/boundary.test.mjs && node decision/properties.test.mjs",
     "test:overview": "node overview/overview.test.mjs && node overview/properties.test.mjs",
+    "test:dashboard": "node dashboard/render.test.mjs && node dashboard/convergence.test.mjs",
+
     "analytics": "node analytics/build.mjs",
     "decision": "node decision/build.mjs",
     "overview": "node overview/build.mjs",
-    "test:dashboard": "node dashboard/render.test.mjs && node dashboard/convergence.test.mjs",
-    "avf": "node bin/avf.mjs",
     "dashboard": "node dashboard/build.mjs",
-    "test:refbridge": "node evolution-tests/referential-bridge.test.mjs",
+    "avf": "node bin/avf.mjs",
     "run-h3": "node framework/run.mjs h3 resolution@v0.2",
     "run-h4": "node framework/run.mjs h4 transition@v0.1"
   },
