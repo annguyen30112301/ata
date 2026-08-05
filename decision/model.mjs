@@ -88,9 +88,28 @@ function collectRecommendations(snapshot) {
 // sortRecommendations — the DTO's deterministic order: priority (HIGH first), then id. Pure, non-mutating.
 const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-// recommend — the v0 pipeline: collect → sort. (A v0+ merge step inserts between the two, contract §7.)
+// mergeByIdentity — fold candidates that share an id (= the identity (subject, kind)) into ONE recommendation
+// whose evidence[] is the concatenation of theirs (contract §3: the id is the merge key). This is the stage the
+// collect→sort seam was built for (§7): a single concern is one row with accumulated support, never duplicated.
+// The most-urgent priority wins the fold; making that arbitration injectable is a policy concern (a later phase).
+// NOTE: the §4 rule set never emits two candidates with the same id, so on today's snapshots this is a NO-OP —
+// it activates the moment a rule shares an identity (e.g. a future per-hypothesis signal).
+function mergeByIdentity(candidates) {
+  const byId = new Map();
+  for (const c of candidates) {
+    const prev = byId.get(c.id);
+    if (!prev) { byId.set(c.id, { ...c, evidence: [...c.evidence] }); continue; }
+    prev.evidence.push(...c.evidence);                                       // same concern → more support, not a new row
+    if (RANK[c.priority] < RANK[prev.priority]) prev.priority = c.priority;  // most urgent wins (policy may refine, C.2)
+  }
+  return [...byId.values()];
+}
+export { mergeByIdentity };
+
+// recommend — the pipeline: collect → merge → sort. Merge folds any candidates that share an identity, so a
+// single concern is one recommendation with accumulated evidence, never duplicated rows (contract §7).
 export function recommend(snapshot) {
-  return sortRecommendations(collectRecommendations(snapshot));
+  return sortRecommendations(mergeByIdentity(collectRecommendations(snapshot)));
 }
 
 // RecommendationSnapshot — the DTO (contract §3). Pure over the snapshot: identical snapshot yields an identical

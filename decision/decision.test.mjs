@@ -2,7 +2,7 @@
 // snapshot.test.mjs / trend.test.mjs). The fixture is a hand-built AnalyticsSnapshot with KNOWN signals; the
 // bars assert the recommendations that the §4 rule set must produce from it — nothing more, nothing invented.
 //   node decision/decision.test.mjs
-import { recommend, recommendationSnapshot, resolveSignal, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
+import { recommend, recommendationSnapshot, resolveSignal, mergeByIdentity, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
 
 let pass = 0, fail = 0;
 const ok = (n, c, d = '') => { (c ? pass++ : fail++); console.log(`  ${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  <-- ' + d}`); };
@@ -108,6 +108,23 @@ try {
     const r = recommend(Object.freeze(frozen));
     ok('7. produces from a plain object snapshot alone (no fs, no reports/reviews/runs)', r.length === EXPECTED_IDS.length);
     ok('7. pure: the input snapshot is not mutated', JSON.stringify(frozen) === before);
+  }
+
+  // MERGE — fold by IDENTITY, not by signal (Phase C.1). The pipeline is collect → merge → sort; merge folds any
+  // candidates that share an identity (subject, kind) into one recommendation whose evidence accumulates.
+  console.log('\nMERGE — same concern → one recommendation, evidence accumulates (by identity, not by signal)');
+  {
+    // The acceptance case: two candidates that both demand review(H4) — one from verdict-away, one from an
+    // override signal — are ONE recommendation with TWO evidence entries, never two rows.
+    const away = { id: 'H4:review', priority: 'HIGH', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'trend.hypotheses.H4.verdict.direction', value: 'away_from_supported' }] };
+    const override = { id: 'H4:review', priority: 'MEDIUM', kind: 'REVIEW', subject: { hypothesis: 'H4' }, evidence: [{ signal: 'review.by_hypothesis.H4.override_rate', value: 0.6 }] };
+    const merged = mergeByIdentity([away, override]);
+    ok('two candidates with the same identity → ONE recommendation, not two', merged.length === 1 && merged[0].id === 'H4:review');
+    ok('their evidence accumulates in order (append, never replace)', eq(merged[0].evidence, [away.evidence[0], override.evidence[0]]));
+    ok('the most-urgent priority wins the fold (HIGH over MEDIUM)', merged[0].priority === PRIORITY.HIGH);
+    ok('distinct identities are never folded', mergeByIdentity([away, { ...override, id: 'project:review', subject: { scope: 'project' } }]).length === 2);
+    // Dormant on real input: the §4 rules emit distinct ids, so recommend() over the full fixture is unchanged.
+    ok('no false fold: recommend(full) still yields the five distinct recommendations, each with one evidence', recommend(full).length === 5 && recommend(full).every(r => r.evidence.length === 1));
   }
 
   // Guard — thresholds live in one place and are the numbers the §4 table names.
