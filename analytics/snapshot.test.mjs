@@ -42,7 +42,7 @@ console.log('\nANALYTICS — ReviewMetrics (human oversight)');
   const r = reviewMetrics(reviews);
   ok('total=3, confirm=2, override=1', r.total === 3 && r.confirm === 2 && r.override === 1);
   ok('rates: confirm=2/3, override=1/3', Math.abs(r.confirm_rate - 2 / 3) < 1e-9 && Math.abs(r.override_rate - 1 / 3) < 1e-9, `${r.confirm_rate}/${r.override_rate}`);
-  ok('by_hypothesis: H5 {1,1}, H4 {1,0} (canonical key order)', eq(r.by_hypothesis, { H4: { confirm: 1, override: 0 }, H5: { confirm: 1, override: 1 } }), JSON.stringify(r.by_hypothesis));
+  ok('by_hypothesis: H5 {1,1,½}, H4 {1,0,0} + per-hyp override_rate (canonical key order)', eq(r.by_hypothesis, { H4: { confirm: 1, override: 0, override_rate: 0 }, H5: { confirm: 1, override: 1, override_rate: 0.5 } }), JSON.stringify(r.by_hypothesis));
   const empty = reviewMetrics([]);
   ok('empty reviews → zero rates, no divide-by-zero', empty.total === 0 && empty.confirm_rate === 0 && empty.override_rate === 0);
 }

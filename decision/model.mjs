@@ -85,6 +85,15 @@ function collectRecommendations(snapshot) {
   if (snapshot?.review && snapshot.review.total > 0 && snapshot.review.override_rate >= THRESHOLDS.override_rate)
     out.push(rec('override_rate', KIND.REVIEW, { scope: 'project' },
       [{ signal: 'review.override_rate', value: snapshot.review.override_rate }]));
+  // Per-hypothesis override (F.1) — a REVIEW on any hypothesis whose humans overrule the machine at least as often
+  // as they confirm (its own override_rate, an Analytics metric). Identity is (hypothesis, REVIEW) → `${h}:review`,
+  // the SAME id trend's verdict_away emits — so a hypothesis BOTH drifting away AND overridden folds into one
+  // grouped REVIEW downstream. This is the rule that first makes mergeByIdentity do real work. Project-scope
+  // override (above) stays: a project-wide rate and a single hypothesis's rate are different concerns, not dupes.
+  for (const [h, m] of Object.entries(snapshot?.review?.by_hypothesis ?? {}))
+    if (m.override_rate >= THRESHOLDS.override_rate)
+      out.push(rec('override_rate', KIND.REVIEW, { hypothesis: h },
+        [{ signal: `review.by_hypothesis["${h}"].override_rate`, value: m.override_rate }]));
   return out;
 }
 
@@ -94,9 +103,10 @@ export const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.prior
 
 // mergeByIdentity — GROUP candidates that share an id (= the identity (subject, kind)) into one, accumulating
 // their evidence AND their contributing signals (policyKeys). It owns grouping only: it does NOT decide priority
-// — that is the policy stage's job (SRP). This is the stage the collect→sort seam was built for (§7). The §4 rule
-// set never emits two candidates with the same id, so on today's snapshots the fold is a NO-OP; it activates the
-// moment a rule shares an identity.
+// — that is the policy stage's job (SRP). This is the stage the collect→sort seam was built for (§7). Since F.1
+// (per-hypothesis override), a hypothesis both drifting away (verdict_away) and overridden (override_rate) emits
+// two REVIEWs with the same id — this fold is where they become one grouped recommendation, evidence and
+// policyKeys accumulated. (For an identity emitted only once, the fold is a harmless pass-through.)
 function mergeByIdentity(candidates) {
   const byId = new Map();
   for (const c of candidates) {

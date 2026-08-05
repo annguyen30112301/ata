@@ -124,6 +124,33 @@ try {
     ok('distinct identities are never folded', mergeByIdentity([away, { ...override, id: 'project:review', subject: { scope: 'project' } }]).length === 2);
   }
 
+  // F.1 — per-hypothesis override ACTIVATES the merge on real snapshot shape (ADR-0006). A hypothesis both
+  // drifting away AND overridden by humans emits two REVIEWs with the same id; the pipeline folds them into ONE.
+  console.log('\nF.1 — per-hypothesis override folds with the trend REVIEW (mergeByIdentity, now live)');
+  {
+    const both = {
+      generated_at: 'f1',
+      review: { total: 3, confirm: 1, override: 2, confirm_rate: 0.33, override_rate: 0.67, by_hypothesis: { H4: { confirm: 0, override: 2, override_rate: 1 } } },
+      trend: {
+        hypotheses: { H4: { verdict: { from: 'SUPPORTED', to: 'INVALID', direction: 'away_from_supported' }, ccw: { from: 0, to: 0, direction: 'flat' }, metadata: { observations: 2 } } },
+        stability: {},
+      },
+    };
+    const r = recommend(both);
+    const h4 = byId(r, 'H4:review');
+    ok('F.1 verdict_away + per-hyp override fold into ONE H4:review (not two rows)', r.filter(x => x.id === 'H4:review').length === 1);
+    ok('F.1 the fold accumulates BOTH signals as evidence', h4.evidence.length === 2
+      && h4.evidence.some(e => e.signal === 'trend.hypotheses.H4.verdict.direction')
+      && h4.evidence.some(e => e.signal === 'review.by_hypothesis["H4"].override_rate'));
+    ok('F.1 priority is the MOST-URGENT of the folded signals (verdict_away HIGH ⟩ override MEDIUM)', h4.priority === PRIORITY.HIGH);
+    ok('F.1 each folded evidence signal still resolves to its value (auditability holds through the fold)', h4.evidence.every(e => resolveSignal(both, e.signal) === e.value));
+    // A lone per-hypothesis override stands on its own — a MEDIUM REVIEW, no fold. Project-scope rate is kept
+    // BELOW threshold (0.4) so only the per-hypothesis rule fires: the two rules are independent concerns.
+    const lone = { generated_at: 'f1b', review: { total: 5, confirm: 3, override: 2, confirm_rate: 0.6, override_rate: 0.4, by_hypothesis: { H9: { confirm: 0, override: 2, override_rate: 1 } } }, trend: { status: 'no history yet' } };
+    const lr = recommend(lone);
+    ok('F.1 per-hyp override fires while project-scope (0.4) stays silent — independent concerns', lr.length === 1 && lr[0].id === 'H9:review' && lr[0].priority === PRIORITY.MEDIUM && lr[0].kind === KIND.REVIEW);
+  }
+
   // POLICY COMPOSITION — the policy is a PIPELINE of stages `(rec) => rec | null`; each owns one concern and
   // knows nothing of the others (C.3). The seam is proven by COMPOSITION: priority and suppression compose
   // although neither knows the other.

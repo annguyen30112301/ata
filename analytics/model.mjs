@@ -57,8 +57,12 @@ export function reviewMetrics(reviews) {
     if (rv.decision === 'confirm') { confirm++; by_hypothesis[h].confirm++; }
     else if (rv.decision === 'override') { override++; by_hypothesis[h].override++; }
   }
-  const rate = n => (total ? n / total : 0);
-  return { total, confirm, override, confirm_rate: rate(confirm), override_rate: rate(override), by_hypothesis: sortKeys(by_hypothesis) };
+  const rate = (n, d) => (d ? n / d : 0);
+  // Per-hypothesis override_rate — the SAME metric as the project rate, at hypothesis grain (of THIS hypothesis's
+  // reviews, how many were overrides). Decision reads it to raise a per-hypothesis REVIEW (F.1); owning the rate
+  // here, not deriving it in Decision, keeps the ADR-0002/0003 boundary — a rate is a metric, Analytics' to compute.
+  for (const e of Object.values(by_hypothesis)) e.override_rate = rate(e.override, e.confirm + e.override);
+  return { total, confirm, override, confirm_rate: rate(confirm, total), override_rate: rate(override, total), by_hypothesis: sortKeys(by_hypothesis) };
 }
 
 // RuleMetrics — DERIVED, not stored: re-evaluate a gating policy over the stored reports and aggregate
