@@ -89,7 +89,8 @@ function collectRecommendations(snapshot) {
 }
 
 // sortRecommendations — the DTO's deterministic order: priority (HIGH first), then id. Pure, non-mutating.
-const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+// A total order (priority rank, then id), so it is idempotent and permutation-invariant (properties.test.mjs).
+export const sortRecommendations = recs => [...recs].sort((a, b) => RANK[a.priority] - RANK[b.priority] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
 // mergeByIdentity — GROUP candidates that share an id (= the identity (subject, kind)) into one, accumulating
 // their evidence AND their contributing signals (policyKeys). It owns grouping only: it does NOT decide priority
