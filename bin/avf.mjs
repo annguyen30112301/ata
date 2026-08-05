@@ -8,6 +8,7 @@
 //   avf dashboard                             regenerate the self-contained HTML dashboard
 //   avf analytics                             package the AnalyticsSnapshot as analytics/analytics.json
 //   avf decision                              package the RecommendationSnapshot as decision/decision.json
+//   avf overview                              compose subsystem cards into overview/index.html (shell owns no data)
 //   avf review --reviewer … --decision …      submit a human review of a verdict (append-only oracle)
 //   avf simulate [--verdict … --env …]        run a fake verdict through the rule engine (no CI, no connector)
 //   avf help
@@ -18,6 +19,7 @@ import { run } from '../framework/run.mjs';
 import { buildDashboard } from '../dashboard/build.mjs';
 import { buildAnalytics } from '../analytics/build.mjs';
 import { buildDecision } from '../decision/build.mjs';
+import { buildOverview } from '../overview/build.mjs';
 import { submitReview, suggestLearning } from '../oracle/review.mjs';
 import { makeReport } from '../report/model.mjs';
 import { fromKernelVerdict } from '../report/adapters.mjs';
@@ -67,6 +69,7 @@ const USAGE = `avf — Automation Validation Framework
   avf dashboard                             regenerate dashboard/index.html
   avf analytics                             write analytics/analytics.json (the snapshot as an artifact)
   avf decision                              write decision/decision.json (recommendations from the snapshot)
+  avf overview                              write overview/index.html (compose Analytics + Decision cards)
   avf review --reviewer <name> --decision confirm|override
              --hypothesis <H> --verdict <V> --reason <text>
              [--human-verdict <V>] [--engine <e>] [--case <id>] [--dry-run]
@@ -114,6 +117,12 @@ async function main() {
       const r = await buildDecision();
       const n = r.recommendations;
       console.log(`wrote ${r.jsonPath} + decision.html — ${n} recommendation${n === 1 ? '' : 's'}${n === 0 ? ' (silent — no actionable signal)' : ''}`);
+      return 0;
+    }
+
+    case 'overview': {
+      const r = await buildOverview();
+      console.log(`wrote ${r.path} — ${r.cards} cards · ${r.recommendations} recommendation${r.recommendations === 1 ? '' : 's'}`);
       return 0;
     }
 

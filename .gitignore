@@ -12,6 +12,7 @@ analytics/analytics.json
 analytics/analytics.html
 decision/decision.json
 decision/decision.html
+overview/index.html
 
 # OS / editor cruft
 .DS_Store

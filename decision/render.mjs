@@ -70,3 +70,20 @@ ${body}
 <p class="foot">Generated ${esc(generated_at)} · reflects snapshot ${esc(source.snapshot_generated_at ?? '—')} · self-contained · regenerate with <span class="mono">node decision/build.mjs</span></p>
 </div></body></html>`;
 }
+
+// renderDecisionCard — a SUMMARY of the RecommendationSnapshot for a composed dashboard: the priority spread and
+// the top concern — "what should the maintainer look at first?" — as opposed to the explorer's full detail. A
+// SECOND renderer of the same DTO; it returns a card BODY fragment (the shell owns frame + title). Silence stays
+// shown, not hidden: an empty snapshot renders "No actionable signal", never an omitted card.
+export function renderDecisionCard(snapshot) {
+  const recs = snapshot.recommendations || [];
+  if (!recs.length) return `<p class="muted">No actionable signal. Nothing in the snapshot warrants attention right now.</p>`;
+  const by = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  for (const r of recs) by[r.priority] = (by[r.priority] || 0) + 1;
+  const top = recs[0];   // recommendations arrive priority-sorted (HIGH first) — the first is the top concern
+  return `<div class="kpis">` +
+    `<div><b>${by.HIGH}</b><span>high</span></div>` +
+    `<div><b>${by.MEDIUM}</b><span>medium</span></div>` +
+    `<div><b>${by.LOW}</b><span>low</span></div>` +
+    `</div><p class="note">Top concern: <span class="mono">${esc(top.id)}</span> — ${esc(top.kind)}</p>`;
+}

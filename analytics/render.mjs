@@ -100,3 +100,20 @@ ${rule ? `<div class="card"><h2>Rule — would-be gating (derived)</h2>
 <p class="foot">Generated ${esc(generated_at)} · self-contained · regenerate with <span class="mono">node analytics/build.mjs</span></p>
 </div></body></html>`;
 }
+
+// renderAnalyticsCard — a SUMMARY of the AnalyticsSnapshot for a composed dashboard: the few headline numbers a
+// maintainer scans first. A SECOND renderer of the same DTO (the explorer above is the detail); it consumes the
+// snapshot alone and returns a card BODY fragment — no page shell, no <h2>: the composition owns the frame and
+// the title (docs/adr/0003 — a renderer owns one view of one DTO; the dashboard shell composes them).
+export function renderAnalyticsCard(snapshot) {
+  const { overview = {}, review = {}, rule, trend } = snapshot;
+  const dirs = trend && trend.hypotheses ? [...new Set(Object.values(trend.hypotheses).map(h => h.verdict.direction))] : [];
+  const headline = dirs.length ? dirs.join(' · ') : (trend?.status || 'no history yet');
+  const block = rule ? `${esc(rule.would_block)}/${esc(rule.evaluated)}` : '—';
+  return `<div class="kpis">` +
+    `<div><b>${esc(overview.reports)}</b><span>reports</span></div>` +
+    `<div><b>${esc(overview.reviews)}</b><span>reviews</span></div>` +
+    `<div><b>${block}</b><span>would-block</span></div>` +
+    `<div><b>${((review.override_rate || 0) * 100).toFixed(0)}%</b><span>override</span></div>` +
+    `</div><p class="note">Implementation trend: ${esc(headline)}</p>`;
+}
