@@ -1,62 +1,82 @@
-# Validation Audit — coverage of the property-test pattern across AVF
+# Validation Closure — the state Validation ended in across the Capability Registry
 
-Status: **Point-in-time** — 2026-08-04 (Phase D.3). A map, not a contract: it measures which of the three
-property layers (`docs/validation-pattern.md` — algebra · composition · system) each subsystem already proves,
-and in what form, so D.4 fills a *real* gap rather than writing property tests where invariants are already
-covered. Retire this file once Analytics and Presentation have their own `properties.test.mjs`.
+Status: **Closure** — 2026-08-05 (Phase E.2). This file began (D.3) as a *coverage map* answering "which subsystem
+still has a gap?" After E.1 that question has no force left — every Capability Registry subsystem now proves all
+its layers as properties. So the file changes role: it no longer maps gaps, it **records how Validation closed**.
+The map is kept below as history, because the doctrine (`docs/validation-retrospective.md`) is to preserve the
+counter-record, not overwrite it.
 
-Legend: **P** = proven as a property (law over synthetic input / permutations) · **F** = proven, but as a
-single-case fixture assertion · **S** = proven structurally (import/ownership boundary) · **N/A** = the layer
-has no surface here · **gap** = the invariant is not proven at all.
+Legend: **P** = proven as a property (law over synthetic input / permutations) · **N/A** = the layer has no
+surface here · (historical: **F** = fixture-form · **S** = structural · **gap** = unproven).
 
-## Coverage
+## Closure — the Capability Registry
+
+The three subsystems the property-test pattern governs (`docs/adr/0003` — Analytics, Decision, Presentation),
+by layer, with the discovery status each ends in:
+
+| Subsystem | Algebra | Composition | System | Discovery status |
+|-----------|---------|-------------|--------|------------------|
+| **Decision** | **P** — merge idempotent/associative, sort total-order | **P** — policy non-commutative (counter-example) | **P** — recommend order-independent, `snapshot.recommendations = recommend` | **Closed** (the exemplar, D.1) |
+| **Analytics** | **P** — `trendMetrics` + `analyticsSnapshot` permutation-invariant, pure (D.4a/b) | **N/A** — independent families, no composition surface | **P** — assembler = its families, invents no family absent its input | **Closed** (D.4a/b) |
+| **Presentation** | **P** — renderer deterministic + non-mutating (E.1) | **P** — `composeDashboard` non-commutative (counter-example, E.1) | **P** — shell invents nothing: `#sections = #cards` (E.1) | **Closed** (E.1) |
+
+> **No subsystem in the Capability Registry remains in discovery under the Validation Pattern.** Every layer that
+> has a surface is proven as a law; Analytics' Composition is `N/A`, not a gap — there is nothing to compose. The
+> pattern now has three independent instances, and each closed by *application*, not by inventing a new kind of law.
+
+Analytics' `N/A` is a finding, not an omission: naming a layer absent is the same act as naming a defect or a
+boundary — it says *this shape has no composition register*, and that is exactly why the subsystem is done rather
+than under-tested.
+
+## How each gap the D.3 audit found was closed
+
+The D.3 map (below) predicted the work; this is what actually closed it — kept so the seam is provable:
+
+- **Analytics — a real defect, not a formatting chore.** The audit found `analyticsSnapshot` was **not** merely
+  unproven but *order-dependent in its serialized form*: distribution maps built in `readdir` encounter order, so
+  `analytics.json` could differ byte-for-byte between machines on identical evidence. **Closed by D.4a** (stable
+  key order) then locked by `analytics/properties.test.mjs` (D.4b) with permutation-invariance for both
+  `analyticsSnapshot` and `trendMetrics`, plus the tie **boundary** (invariance holds only for distinct
+  timestamps). The audit's value was finding a defect, not filling a checkbox.
+- **Presentation — fixture-form Algebra, untested non-commutativity.** The audit found renderer determinism
+  asserted once and `composeDashboard`'s order-sensitivity untested. **Closed by E.1** (`overview/properties.test.mjs`):
+  determinism + **non-mutation** as Algebra laws, the `[X,Y] ≠ [Y,X]` counter-example as Composition, and the
+  *invents-nothing* section-count law as System. Its structural owns-no-data proof stays in `overview.test.mjs` as
+  the ADR-0003 acceptance — Consumes-proof, not a pattern layer.
+- **Decision — nothing to close.** Already all-P at D.1; it was and remains the exemplar.
+
+## Out of closure scope (deliberately)
+
+Closure is scoped to the Registry, not to the whole repo — the following are **not** claimed closed:
+
+- **Run-log** carries genuine algebra laws (write-is-read-free byte-identical across log sizes; replayable from the
+  log alone) but files them under its own suite, not the pattern. A *classification* difference, not a gap; it is
+  an evidence source, not a Registry capability.
+- **Kernel · Report · Rules · Oracle · Connectors** predate the pattern and carry fixture suites with embedded
+  invariants. They graduate only if a future change makes a law there worth stating.
+
+## Forward — E.3
+
+Three independent instances of the pattern now exist (Decision · Analytics · Presentation) and the pattern has
+stopped changing. By the repo's own rule — a stable pattern graduates from a note to an ADR, the way a boundary
+graduates from an observation to the Capability Registry — `docs/validation-pattern.md` is now due to become
+**ADR-0005**. This closure report is the evidence for that graduation: the pattern held across every subsystem it
+was meant to govern.
+
+---
+
+## Appendix — the D.3 coverage map (history)
+
+Preserved verbatim in substance as the counter-record: what was believed at D.3, before D.4 and E.1 closed it.
 
 | Subsystem | Algebra | Composition | System | `properties.test.mjs` |
 |-----------|---------|-------------|--------|-----------------------|
-| **Decision** | **P** — merge idempotent/associative, sort total-order | **P** — policy non-commutative (counter-example) | **P** — recommend order-independent, `snapshot.recommendations = recommend` | ✓ (the exemplar) |
-| **Analytics** | **F** — `deterministic` (same order) + `pure`; **gap (verified)**: NOT permutation-invariant | **F** — family assembly + canonical key order tested once (artifact) | **F** — determinism + `file IS snapshot` (projection); **gap**: order-invariance | ✗ |
-| **Run-log** | **P** — append-immutable prefix, write-is-read-free byte-identical across 1000 lines | N/A | **P** — replayable-from-log-alone (realised in trend.test) | ✗ (embedded in run-log.test) |
-| **Presentation** (overview · dashboard) | **F** — renderer deterministic + pure, single-case | **S** — shell imports nothing, composes opaque strings, cards own one model | **F** — composeDashboard deterministic | ✗ |
-| Kernel · Report · Rules · Oracle · Connectors | **F** (some embedded invariants: "rules never change the verdict", "normalize collapses formats") | — | — | ✗ (foundational, predate the pattern) |
+| Decision | **P** | **P** | **P** | ✓ (the exemplar) |
+| Analytics | **F** + **gap (verified)**: NOT permutation-invariant | **F** | **F**; **gap**: order-invariance | ✗ → now ✓ (D.4b) |
+| Run-log | **P** | N/A | **P** | ✗ (embedded in run-log.test) |
+| Presentation | **F** — renderer deterministic, single-case | **S** — shell imports nothing | **F** — composeDashboard deterministic | ✗ → now ✓ (E.1) |
+| Kernel · Report · Rules · Oracle · Connectors | **F** (embedded invariants) | — | — | ✗ (predate the pattern) |
 
-## What the audit found
-
-- **Decision is complete and is the only subsystem proven at all three layers *as properties*.** It earns its
-  role as the exemplar; nothing to add here.
-- **Run-log already has genuine algebra properties** — write-is-read-free byte-identical across log sizes is a
-  strong law — they are simply not filed under the pattern. No coverage gap; a *classification* gap only.
-- **Analytics has the real gap — and writing the property already found it.** Determinism and purity are proven,
-  but only for a *fixed input order*. Verified during this audit:
-  - `trendMetrics` **is** permutation-invariant (it sorts by timestamp) — true, just unproven. An easy property.
-  - `analyticsSnapshot` is **NOT** permutation-invariant. The values are identical under a reorder of
-    `reports`/`reviews`, but the serialized form is not: the distribution maps (`verdict_distribution`,
-    `engine_distribution`, `by_hypothesis`) are built in *encounter order*, so their key order follows the input.
-    Since `loadEvidence` reads `reports/` via `readdir` (whose order is not guaranteed across filesystems),
-    `analytics.json` can differ byte-for-byte between machines on identical evidence. Low severity — the artifact
-    is generated, not committed — but it is a genuine hole in the "deterministic projection" claim.
-
-  Composition here is mild (independent metric families appended in canonical order), so the gap is not "add
-  Composition" — it is **make the snapshot order-invariant (stabilise the distribution-map key order), then lock
-  it and `trendMetrics` with permutation-invariance properties.**
-- **Presentation's Composition is the best-proven layer in the system** (structural: the shell imports nothing),
-  but its **Algebra is fixture-form**: renderer determinism is asserted once, and `composeDashboard`'s order
-  sensitivity (card order matters → a non-commutativity counter-example) is untested. A real but *lower-risk* gap
-  than Analytics.
-
-This confirms the shape predicted going in, with one refinement: Analytics' missing layer is not Composition
-(there is little to compose) — it is **property-form Algebra/System**, and the sharpest hole is order-invariance,
-which the audit found to be **not merely unproven but actually false** for `analyticsSnapshot`.
-
-## Recommendation for D.4
-
-**Fill Analytics first.** It is the one subsystem where a property is not just missing but would *fail today*:
-`analyticsSnapshot` is order-dependent in its serialized form. D.4 = a two-line fix (emit the distribution maps
-in a stable key order) followed by `analytics/properties.test.mjs` locking permutation-invariance for both
-`analyticsSnapshot` and `trendMetrics`, plus determinism/purity restated as laws. This is exactly the payoff of
-auditing before producing: the gap is a real defect, not a formatting chore. Presentation follows (D.5): its
-Composition needs nothing, and its Algebra gap (renderer determinism as a property, `composeDashboard`
-non-commutativity) is real but low-risk.
-
-Foundational subsystems (Kernel, Report, Rules, Oracle, Connectors) are out of Phase D's scope: they carry
-fixture suites with embedded invariants and predate the pattern; they graduate only if a future change makes a
-law there worth stating.
+The D.3 recommendation ("fill Analytics first — it is the one subsystem where a property would *fail today*") was
+followed: D.4a fixed the defect, D.4b locked it, E.1 closed Presentation. The prediction and its resolution both
+stand recorded above.
