@@ -113,9 +113,13 @@ node bin/avf.mjs review --dry-run \
 
 ## The Clone Test — the acceptance criterion for Packaging
 
-> **A person who has never seen AVF must be able to clone the repository, install it, and run one
-> real example within ~30 minutes.** If they cannot, Packaging is not done — regardless of how much
-> is written.
+> **A first-time user can clone, install, execute the validation suite, and produce one artifact by
+> following this Quickstart — with no help beyond the documentation.** If they cannot, Packaging is
+> not done — regardless of how much is written.
+>
+> Measured by **zero outside explanation** and **zero undocumented commands** — not by a clock. How
+> long it takes depends on network, machine, npm cache, and experience; *"needs no one to ask"* is the
+> invariant.
 
 This is the same spirit as the Reduction Test and the Reality Test that shaped Project Horizon:
 instead of asking *"is it written?"* it asks *"can a newcomer actually use it?"* If any step on this
