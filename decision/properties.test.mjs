@@ -1,6 +1,8 @@
 // The Decision Properties Test — Phase D (Validation). Not fixture → expected-output, but LAW → property: the
 // algebraic invariants each pipeline stage must obey, checked over synthetic inputs and permutations. No business
 // fixture, no expected recommendation — only the mathematics that makes the pipeline hard to break by accident.
+// It is the exemplar of the pattern in docs/validation-pattern.md: LAW → minimal synthetic → property →
+// counter-example, grouped by layer (algebra · composition · system).
 //   node decision/properties.test.mjs
 import { mergeByIdentity, sortRecommendations, recommend, recommendationSnapshot, priorityPolicy, PRIORITY } from './model.mjs';
 
