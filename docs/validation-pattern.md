@@ -1,7 +1,11 @@
 # The Property-Test Pattern — how AVF proves an invariant
 
-Status: **Adopted** — 2026-08-04. Descriptive, not invented top-down: it codifies the shape
-`decision/properties.test.mjs` (Phase D.1) already uses, so every subsystem's property tests read the same and
+Status: **Graduated** — 2026-08-05 (Phase E.3). This note is now **law** under `docs/adr/0005`: the pattern
+reached three independent instances (Decision · Analytics · Presentation) with its shape unchanged across the
+third, meeting the graduation threshold its own "Forward" clause set. It stays here as the *descriptive shape*;
+`ADR-0005` owns the *decision* — when a validation pattern earns the right to become a repo law. Originally
+Adopted 2026-08-04 (D.2), descriptive, not invented top-down: it codifies the shape
+`decision/properties.test.mjs` (Phase D.1) already used, so every subsystem's property tests read the same and
 the project grows one language for proving architecture rather than three dialects of it.
 
 ## Why
@@ -63,3 +67,6 @@ Analytics (`trendMetrics` permutation-invariance, `analyticsSnapshot` purity ove
 Presentation (a renderer is a pure function of one DTO; a shell composes rendered strings) each get their own
 `properties.test.mjs` in this shape. When the pattern has three instances and has stopped changing, it graduates
 from this note to an ADR — the same way a boundary graduates from an observation to the Capability Registry.
+**This has now happened** (Analytics D.4b, Presentation E.1 were the second and third instances): the graduation
+rule itself is locked in `docs/adr/0005`. What that ADR graduated is not this shape but the *threshold* — three
+independent instances before a validation pattern becomes law.
