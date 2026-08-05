@@ -108,34 +108,46 @@ function mergeByIdentity(candidates) {
 }
 export { mergeByIdentity };
 
-// defaultPolicy — the default arbitration: a group's priority is the MOST-URGENT of its contributing signals'
-// default priorities (DEFAULT_POLICY). This is the business rule the C.1 merge used to hold; it now lives in the
-// policy stage, its own responsibility. A caller may inject a different policy via recommend's `policy` option.
-export function defaultPolicy(group) {
-  return group.policyKeys.map(k => DEFAULT_POLICY[k]).reduce((a, b) => (RANK[b] < RANK[a] ? b : a));
+// priorityOf — the default priority for a group: the MOST-URGENT of its contributing signals' priorities
+// (DEFAULT_POLICY). Pure. The building block the priority policy stage uses.
+const priorityOf = group => group.policyKeys.map(k => DEFAULT_POLICY[k]).reduce((a, b) => (RANK[b] < RANK[a] ? b : a));
+
+// A POLICY is a composable STAGE: `(rec) => rec | null`. It reads the working recommendation (a merged group),
+// returns it enriched/modified, or returns `null` to SUPPRESS it. A stage owns ONE concern and knows nothing of
+// the others — priority does not know suppression; suppression does not know priority (composition, C.3).
+export const priorityPolicy = rec => ({ ...rec, priority: priorityOf(rec) });
+
+// DEFAULT_POLICIES — the default policy PIPELINE. Just the priority stage today, so behaviour is unchanged;
+// adding stages (escalation, suppression, …) is additive — no change here, and no change to the DTO.
+export const DEFAULT_POLICIES = Object.freeze([priorityPolicy]);
+
+// applyPolicy — run each merged group through the policy PIPELINE, in order. A stage may modify the working
+// recommendation or return null to drop it (suppression). The internal `policyKeys` never reach the DTO; the
+// finished recommendation is emitted in canonical key order.
+function applyPolicy(groups, policies) {
+  const out = [];
+  for (const g of groups) {
+    let rec = g;
+    for (const p of policies) { rec = p(rec); if (rec == null) break; }
+    if (rec != null) out.push({ id: rec.id, priority: rec.priority, kind: rec.kind, subject: rec.subject, evidence: rec.evidence });
+  }
+  return out;
 }
 
-// applyPolicy — the stage between merge and sort: turn each grouped candidate into a finished recommendation by
-// asking the policy for its priority. The policy sees the whole group (accumulated evidence + contributing
-// signals) and returns a priority; the internal `policyKeys` never reach the DTO.
-function applyPolicy(groups, policy) {
-  return groups.map(g => ({ id: g.id, priority: policy(g), kind: g.kind, subject: g.subject, evidence: g.evidence }));
-}
-
-// recommend — the pipeline: collect → merge → applyPolicy → sort. Four separate stages (SRP): detection,
-// grouping, priority, ordering. Merge never decides priority; the policy does — and it is INJECTABLE (default
-// preserves behavior). No DTO change: a recommendation still carries {id, priority, kind, subject, evidence}.
-export function recommend(snapshot, { policy = defaultPolicy } = {}) {
-  return sortRecommendations(applyPolicy(mergeByIdentity(collectRecommendations(snapshot)), policy));
+// recommend — the pipeline: collect → merge → policy pipeline → sort. The policy is a COMPOSITION of stages
+// (default: just priority), each owning one concern; a stage may enrich or suppress. Injectable, behaviour-
+// preserving by default, and still no DTO change: a recommendation carries {id, priority, kind, subject, evidence}.
+export function recommend(snapshot, { policies = DEFAULT_POLICIES } = {}) {
+  return sortRecommendations(applyPolicy(mergeByIdentity(collectRecommendations(snapshot)), policies));
 }
 
 // RecommendationSnapshot — the DTO (contract §3). Pure over the snapshot: identical snapshot yields an identical
 // snapshot save for `generated_at`. `source` records WHICH snapshot this reads (provenance); no triggering signal
 // → { recommendations: [] } (not an error). This is the sole contract between Decision and its consumers.
-export function recommendationSnapshot(snapshot, { generated_at = new Date().toISOString(), policy } = {}) {
+export function recommendationSnapshot(snapshot, { generated_at = new Date().toISOString(), policies } = {}) {
   return {
     generated_at,
     source: { snapshot_generated_at: snapshot?.generated_at ?? null },
-    recommendations: recommend(snapshot, { policy }),
+    recommendations: recommend(snapshot, { policies }),
   };
 }

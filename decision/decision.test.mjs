@@ -2,7 +2,7 @@
 // snapshot.test.mjs / trend.test.mjs). The fixture is a hand-built AnalyticsSnapshot with KNOWN signals; the
 // bars assert the recommendations that the §4 rule set must produce from it — nothing more, nothing invented.
 //   node decision/decision.test.mjs
-import { recommend, recommendationSnapshot, resolveSignal, mergeByIdentity, defaultPolicy, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
+import { recommend, recommendationSnapshot, resolveSignal, mergeByIdentity, priorityPolicy, DEFAULT_POLICIES, PRIORITY, KIND, THRESHOLDS } from './model.mjs';
 
 let pass = 0, fail = 0;
 const ok = (n, c, d = '') => { (c ? pass++ : fail++); console.log(`  ${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  <-- ' + d}`); };
@@ -124,17 +124,26 @@ try {
     ok('distinct identities are never folded', mergeByIdentity([away, { ...override, id: 'project:review', subject: { scope: 'project' } }]).length === 2);
   }
 
-  // POLICY — a separate stage decides priority; the default preserves behavior, and it is INJECTABLE (C.2).
-  console.log('\nPOLICY — priority is the policy\'s to decide; the seam is proven by injection, not by a value');
+  // POLICY COMPOSITION — the policy is a PIPELINE of stages `(rec) => rec | null`; each owns one concern and
+  // knows nothing of the others (C.3). The seam is proven by COMPOSITION: priority and suppression compose
+  // although neither knows the other.
+  console.log('\nPOLICY COMPOSITION — a pipeline of stages, each owning one concern (priority ⟂ suppression)');
   {
-    const h4 = recommend(full).find(r => r.id === 'H4:review');
-    ok('default policy preserves behavior: recommend(full) gives H4:review = HIGH', h4 && h4.priority === PRIORITY.HIGH);
-    // The seam: an injected policy that always returns LOW overrides the default HIGH — only possible because
-    // merge no longer owns priority. Not testing "HIGH is right"; testing WHO decides priority.
-    const low = recommend(full, { policy: () => PRIORITY.LOW });
-    ok('inject alwaysLow → every recommendation is LOW (merge no longer owns priority)', low.length === 5 && low.every(r => r.priority === PRIORITY.LOW));
-    // The default arbitration ("most-urgent of the group") now lives in the policy, not in merge.
-    ok('default policy arbitrates a folded group to the most-urgent contributing signal (HIGH over MEDIUM)', defaultPolicy({ policyKeys: ['override_rate', 'verdict_away'] }) === PRIORITY.HIGH);
+    ok('default pipeline is just the priority stage — behaviour preserved: H4:review is HIGH', recommend(full).find(r => r.id === 'H4:review')?.priority === PRIORITY.HIGH && DEFAULT_POLICIES.length === 1);
+    ok('priorityPolicy owns priority only: most-urgent of the group (HIGH over MEDIUM), knows nothing else', priorityPolicy({ id: 'x', kind: 'REVIEW', subject: {}, evidence: [], policyKeys: ['override_rate', 'verdict_away'] }).priority === PRIORITY.HIGH);
+
+    // A suppression stage returns null. Composed AFTER priority, it drops what priority scored — and priority did
+    // not have to know suppression exists. This is the proof: two independent stages compose.
+    const suppressAll = () => null;
+    ok('compose [priority, suppressAll] → [] (suppression drops the scored recommendations)', recommend(full, { policies: [priorityPolicy, suppressAll] }).length === 0);
+
+    // A selective suppression: drop project-scoped concerns, keep the rest. priority is untouched by this stage.
+    const dropProject = rec => (rec.subject.scope === 'project' ? null : rec);
+    const kept = recommend(full, { policies: [priorityPolicy, dropProject] });
+    ok('a stage can suppress selectively (project:* gone, the three hypothesis concerns kept, still HIGH-scored)', kept.length === 3 && kept.every(r => !r.subject.scope));
+
+    // A later stage can OVERRIDE an earlier one (escalation-style), without either knowing merge or collect.
+    ok('a later stage overrides an earlier one: escalate every priority to LOW', recommend(full, { policies: [priorityPolicy, rec => ({ ...rec, priority: PRIORITY.LOW })] }).every(r => r.priority === PRIORITY.LOW));
   }
 
   // Guard — thresholds live in one place and are the numbers the §4 table names.
