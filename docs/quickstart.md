@@ -95,9 +95,7 @@ A machine verdict is a claim; a human review turns it into confirmed knowledge (
 Contract). Use `--dry-run` to validate without writing to the append-only store.
 
 ```bash
-node bin/avf.mjs review --dry-run \
-  --reviewer you --decision confirm --hypothesis H5 --verdict DEFER \
-  --reason "pipeline publishes no test run — real process gap"
+node bin/avf.mjs review --dry-run --reviewer you --decision confirm --hypothesis H5 --verdict DEFER --reason "pipeline publishes no test run — real process gap"
 ```
 
 ## Where to go next
