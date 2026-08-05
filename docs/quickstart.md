@@ -16,8 +16,8 @@ Evidence → Benchmark → Engine → Verdict → Ruling → (render / gate)
 - Node.js 18+ (uses only the standard library + `js-yaml`).
 
 ```bash
-npm install
-npm test          # kernel + connectors — should print GREEN
+npm ci
+npm test          # full validation suite — should print GREEN
 ```
 
 Prefer to read code over docs? Run the [examples](../examples/) — all offline, no credentials:
